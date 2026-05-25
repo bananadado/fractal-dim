@@ -178,7 +178,63 @@ define Hausdorff measure --- with $\mathcal{K}$ being all subsets of diameter
 at most $\delta$, and $\tilde{\mu}(U) = |U|^s$.
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Hausdorff Measure}
+\subsection{Definition}
+Let ($X$, $d$) denote  a metric space, $S \subseteq X$ a Borel set. \\For a set $U \subseteq X$, write $|U| := $ diam($U$) $= sup_{x,y\in U}d(x, y)$
+\begin{definition}
+    Let $s \geq 0,$ and $\delta > 0$. Define \[
+    \Hm{s}_\delta(S) = \inf\left\{
+      \sum_{i=1}^{\infty} |U_i|^s 
+      \;\middle|\; 
+      S \subseteq \bigcup_{i=1}^{\infty} U_i,\ |U_i| \leq \delta
+    \right\}
+    \]
+    This is the infimum over all countable covers of S by sets of diameter at most $\delta$.
+\end{definition}
+\noindent As $\delta \rightarrow 0$, we allow fewer and fewer covers, so $\Hm{s}_\delta(S)$ is non-decreasing in $1/\delta$. The limit \[
+\Hm{s}(S) = \lim\limits_{\delta\rightarrow 0}\Hm{s}_{\delta}(S)\in [0, \infty]
+\]
+is the $s$-dimensional Hausdorff measure of $S$. This is possibly $+\infty$.\\
+$\Hm{s}$ is an outer measure on $X$, and its restriction to the Borel $\sigma$-algebra is a measure. 
 
+\subsection{Phase Transition}
+Observe that $\Hm{s}(S)$ exhibits a phase transition in $s$:
+\begin{theorem}
+    If $\Hm{s}(S) < \infty$ for some $s$, then $\Hm{t}(S) = 0$ for all $t > s$.
+\end{theorem}
+\begin{proof}
+    Suppose $\Hm{s}(S) < \infty$. For any cover $\{U_i\}$ with $|U_i| \leq \delta$. For $t>s$:\[
+    \Sigma|U_i|^t=\Sigma|U_i|^{t-s}\cdot|U_i|^s\leq\delta^{t-s}\Sigma|U_i|^s
+    \]
+    Taking the infimum over all covers gives \[\Hm{t}_\delta(S) \leq \delta^{t-s}\cdot\Hm{s}_\delta(S)\leq\delta^{t-s}\cdot\Hm{s}(S)\] where the second inequality holds since $\Hm{s}_\delta(S)$ is non-decreasing in $1/\delta$.\\
+    Now let $\delta\rightarrow0$, $t-s>0$, and $\Hm{s}(S) < \infty$ is a fixed finite constant. So the right hand side goes to 0, hence $\Hm{t}(S)=0$.
+\end{proof}
+\begin{corollary}
+There exists a unique value $d\in[0, \infty]$ such that\[
+\Hm{s}(S) = \begin{cases} 
+\text{$\infty$}&\text{$s < d$}\\
+\text{$0$}&\text{$s > d$}
+\end{cases}
+\]
+At $s=d$, the measure $\Hm{d}(S)$ may take any value in $[0, +\infty]$.
+\end{corollary}
+
+\section{Hausdorff Dimension}
+\begin{definition}
+    (Hausdorff Dimension). The \textbf{Hausdorff Dimension} of S is the critical exponent\[
+    \Hd(S) = \text{inf}\{s\geq0:\Hm{s}(S)=0\} = \text{sup}\{s\geq0:\Hm{s}(S)=+\infty\}
+    \]
+\end{definition}
+\subsection{Basic Properties}
+\begin{proposition}[Basic properties]
+Hausdorff dimension satisfies the following:
+\begin{enumerate}
+    \item \textbf{Monotonicity}: $A \subseteq B \implies \Hd(A) \leq \Hd(B)$
+    \item \textbf{Countable stability}: $\Hd(\cup_{i=1}^{\infty}A_i)=\sup_i\Hd(A_i)$
+    \item \textbf{Countable sets}: if $S$ is countable, $\Hd(S) = 0$.
+    \item \textbf{Smooth manifolds
+\footnote{A smooth $k$-dimensional manifold is just a set that locally looks like $\mathbb{R}^k$}}: if $M \subset \mathbb{R}^n$ is a smooth k-dimensional submanifold, then $\Hd(M) = k$.
+  \end{enumerate}
+\end{proposition}
 % ─────────────────────────────────────────────────────────────────────────────
 \newpage
 \printbibliography
