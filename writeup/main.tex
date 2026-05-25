@@ -85,7 +85,102 @@
 This is a test.
 
 
+\section{Measure Theory}
+
+\noindent\textit{The material in this section is standard and follows 
+the presentation in \cite{menegaki2026}.}\\\\
+First to define measure theory (I didn't take Lebesgue so I will be using the above notes...)\\\\
+A measure is a way to assign a ``size'' to subsets of a set X. Let $\mathcal{F}$ be a $\sigma$-algebra on X.\\
+\begin{definition} (Measure). Let (\textit{X}, $\mathcal{F}$) be a measurable space. A measure on (X, $\mathcal{F}$) is a function $\mu : \mathcal{F} \rightarrow [0, \infty]$ satisfying:
+\begin{enumerate}
+\item $\mu(\emptyset) = 0$
+\item \textbf{Countable additivity:} if $A_1, A_2, \ldots \in \mathcal{F}$ are 
+    pairwise disjoint, then
+    \[
+      \mu\!\left(\bigsqcup_{i=1}^{\infty} A_i\right) = \sum_{i=1}^{\infty} \mu(A_i)
+    \]
+\end{enumerate}
+The triple $(X, \mathcal{F}, \mu)$ is called a \textbf{measure space}.
+\end{definition}
+\vspace{2pt}\begin{proposition}[Basic properties]
+  Let $(X, \mathcal{F}, \mu)$ be a measure space.
+  \begin{enumerate}
+    \item \textbf{Monotonicity}: \[A \subseteq B \Rightarrow \mu(A) \leq \mu(B)\]
+    \item \textbf{Countable subadditivity}: 
+    \[\mu\!\left(\bigcup_{i=1}^{\infty} A_i\right) \leq \sum_{i=1}^{\infty} \mu(A_i)\]
+    \item \textbf{Continuity from below}: if $A_1 \subseteq A_2 \subseteq \cdots$ then
+    \[
+      \mu\!\left(\bigcup_{i=1}^{\infty} A_i\right) = \lim_{i \to \infty} \mu(A_i)
+    \]
+    \item \textbf{Continuity from above}: if $A_1 \supseteq A_2 \supseteq \cdots$ 
+    and $\mu(A_1) < \infty$ then
+    \[
+      \mu\!\left(\bigcap_{i=1}^{\infty} A_i\right) = \lim_{i \to \infty} \mu(A_i)
+    \]
+  \end{enumerate}
+\end{proposition}
+
+The canonical example is the \textbf{Lebesgue measure} $\lambda^n$ on 
+$(\R^n, \mathcal{B}(\R^n))$, where $\mathcal{B}(\R^n)$ is the Borel $\sigma$-algebra 
+--- the smallest $\sigma$-algebra containing all open sets. Lebesgue measure assigns 
+to each box $[a_1, b_1] \times \cdots \times [a_n, b_n]$ its volume 
+$(b_1 - a_1) \cdots (b_n - a_n)$, and extends uniquely to all Borel sets. It 
+formalises the intuitive notions of length, area, and volume.
+
+The inadequacy of Lebesgue measure for fractal geometry is immediate: a curve 
+$\gamma \subset \R^2$ has $\lambda^2(\gamma) = 0$ (zero area) but $\lambda^1(\gamma)$ 
+may be infinite (infinite length). Neither gives useful information about the 
+``size'' of $\gamma$. What is needed is a family of measures parametrised by a 
+continuous exponent $s \geq 0$.
+
+To construct such a family, we need the notion of an outer measure, which is 
+slightly weaker than a measure --- it is defined on \emph{all} subsets of $X$, 
+not just measurable ones, and only requires subadditivity rather than full 
+additivity.
+
+\begin{definition}[Outer measure]
+  A function $\mu^* : 2^X \to [0, \infty]$ is an \textbf{outer measure} on $X$ if:
+  \begin{enumerate}
+    \item $\mu^*(\emptyset) = 0$
+    \item \textbf{Monotonicity}: $A \subseteq B \Rightarrow \mu^*(A) \leq \mu^*(B)$
+    \item \textbf{Countable subadditivity}:
+    \[
+      \mu^*\!\left(\bigcup_{i=1}^{\infty} A_i\right) 
+      \leq \sum_{i=1}^{\infty} \mu^*(A_i)
+    \]
+  \end{enumerate}
+\end{definition}
+
+The relationship between outer measures and measures is given by the
+Hahn-Carath\'{e}odory extension theorem: given an outer measure $\mu^*$ on $X$, the collection
+\[
+  \Sigma = \{A \subseteq X : \mu^*(B) = \mu^*(B \cap A) + \mu^*(B \setminus A) 
+  \text{ for all } B \subseteq X\}
+\]
+is a $\sigma$-algebra, and $\mu^*|_{\Sigma}$ is a measure. Sets in 
+$\Sigma$ are called \textbf{$\mu^*$-measurable}. In particular, all Borel sets  
+are $\mu^*$-measurable whenever $\mu^*$ is constructed from a Borel-compatible 
+pre-measure --- which will be the case for Hausdorff measure.
+
+The standard way to construct an outer measure is via coverings. If 
+$\mathcal{K} \subseteq 2^X$ covers $X$ (with $\emptyset \in \mathcal{K}$) and 
+$\tilde{\mu} : \mathcal{K} \to [0, \infty]$ assigns sizes to sets in $\mathcal{K}$ 
+with $\tilde{\mu}(\emptyset) = 0$, then
+\[
+  \mu^*(A) = \inf\left\{
+    \sum_{i=1}^{\infty} \tilde{\mu}(K_i) 
+    \;\middle|\; 
+    K_i \in \mathcal{K},\ A \subseteq \bigcup_{i=1}^{\infty} K_i
+  \right\}
+\]
+defines an outer measure on $X$. This is precisely the construction used to 
+define Hausdorff measure --- with $\mathcal{K}$ being all subsets of diameter 
+at most $\delta$, and $\tilde{\mu}(U) = |U|^s$.
 % ─────────────────────────────────────────────────────────────────────────────
+\section{Hausdorff Measure}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\newpage
 \printbibliography
 % ─────────────────────────────────────────────────────────────────────────────
 

@@ -225,3 +225,4 @@ __marimo__/
 *.out
 *.run.xml
 *.blg
+*.bbl
