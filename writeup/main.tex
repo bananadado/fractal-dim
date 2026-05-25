@@ -1,0 +1,92 @@
+\documentclass[11pt, a4paper]{article}
+
+% ── Encoding & fonts ──────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% ── Mathematics ───────────────────────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}          % extends amsmath
+\usepackage{bbm}                % \mathbbm{1} indicator function
+
+
+% ── Layout ────────────────────────────────────────────────────────────────────
+\usepackage[margin=1.2in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Figures & colour ──────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[dvipsnames]{xcolor}
+
+% ── Hyperlinks ────────────────────────────────────────────────────────────────
+\usepackage[
+  colorlinks = true,
+  linkcolor  = MidnightBlue,
+  citecolor  = MidnightBlue,
+  urlcolor   = MidnightBlue
+]{hyperref}
+
+% ── References ────────────────────────────────────────────────────────────────
+\usepackage[
+  backend  = biber,
+  style    = alphabetic,
+  sorting  = nyt
+]{biblatex}
+\addbibresource{refs.bib}
+
+% ── Theorem environments ──────────────────────────────────────────────────────
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ── Operators & shorthands ────────────────────────────────────────────────────
+\DeclareMathOperator{\diam}{diam}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Hm}[1]{\mathcal{H}^{#1}}   % Hausdorff measure
+\newcommand{\Hd}{\dim_{\mathcal{H}}}     % Hausdorff dimension
+\newcommand{\Bd}{\dim_{\mathrm{box}}}    % box-counting dimension
+\newcommand{\eps}{\varepsilon}
+\newcommand{\Z}{\mathbb{Z}}
+
+% ─────────────────────────────────────────────────────────────────────────────
+
+\title{%
+  \textbf{Fractal Dimension: Theory and Computation}\\[0.4em]
+  \large Box-Counting Estimation via Hilbert Curve Analysis
+}
+\author{ME}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+% ─────────────────────────────────────────────────────────────────────────────
+
+This is a test.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+\printbibliography
+% ─────────────────────────────────────────────────────────────────────────────
+
+\end{document}
