@@ -82,8 +82,8 @@
 \label{sec:intro}
 % ─────────────────────────────────────────────────────────────────────────────
 
-This is a test.
-
+This entire paper is basically based on \cite{falconer2003}.\\
+Perhaps not a very serious paper since its just what I found when I wanted to look into this area.
 
 \section{Measure Theory}
 
@@ -179,8 +179,7 @@ at most $\delta$, and $\tilde{\mu}(U) = |U|^s$.
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Hausdorff Measure}
 The material in sections 3 and 4 follows \cite{falconer2003}.
-\subsection{Definition}
-Let ($X$, $d$) denote  a metric space, $S \subseteq X$ a Borel set. \\For a set $U \subseteq X$, write $|U| := $ diam($U$) $= sup_{x,y\in U}d(x, y)$
+\subsection{Definition} Let ($X$, $d$) denote  a metric space, $S \subseteq X$ a Borel set. \\For a set $U \subseteq X$, write $|U| := $ diam($U$) $= sup_{x,y\in U}d(x, y)$
 \begin{definition}
     Let $s \geq 0,$ and $\delta > 0$. Define \[
     \Hm{s}_\delta(S) = \inf\left\{
@@ -225,6 +224,7 @@ At $s=d$, the measure $\Hm{d}(S)$ may take any value in $[0, +\infty]$.
     \Hd(S) = \text{inf}\{s\geq0:\Hm{s}(S)=0\} = \text{sup}\{s\geq0:\Hm{s}(S)=+\infty\}
     \]
 \end{definition}
+\noindent This is the ``true'' dimension of a fractal.
 \subsection{Basic Properties}
 \begin{proposition}[Basic properties]
 Hausdorff dimension satisfies the following:
@@ -236,9 +236,38 @@ Hausdorff dimension satisfies the following:
 \footnote{A smooth $k$-dimensional manifold is just a set that locally looks like $\mathbb{R}^k$}}: if $M \subset \mathbb{R}^n$ is a smooth k-dimensional submanifold, then $\Hd(M) = k$.
   \end{enumerate}
 \end{proposition}
+\vspace{5pt}\noindent The following proposition is a useful tool we'll need later down the line:
+\begin{proposition}{Lipschitz invariance}
+    Let $f: A\rightarrow B$ be Lipschitz with constant C. Then $\Hd(f(A))\leq\Hd(A)$. In particular, bi-Lipschitz maps preserve Hausdorff dimensions.
+\end{proposition}
+\begin{proof}
+    If $\{U_i\}$ covers A with $\Sigma|U_i|^s<\infty$, then $\{f(U_i)\}$ covers $f(A)$ with $|f(U_i)|\leq C|U_i|$ (by Lipschitz), so $\Sigma|f(U_i)|^s\leq C^s\Sigma|U_i|^s<\infty$ Hence $\Hm{s}(f(A))\leq C^s\Hm{s}(A)$, and the dimension inequality follows.
+\end{proof}
+\section{Box-counting Dimension}
+\subsection{Definition}
+A.K.A Minkowski–Bouligand dimension.\\
+We need a way to be able to effectively compute the dimension of a fractal (i.e. the Hausdorff dimension). A perhaps easy way to do this is to cover said shape with boxes of size $\eps$ and count them. We check to see how the number of boxes hitting the shape $N(\eps)$ changes w.r.t the length $\eps$. We use the following formula: 
+\[
+\Bd(S) := \lim\limits_{\eps\rightarrow0}\frac{\log N(\eps)}{\log (1/\eps)} = -\lim\limits_{\eps\rightarrow0}\frac{\log N(\eps)}{\log (\eps)}
+\]
+This is roughly the dimension $d$ such that $N(\eps) \approx C\eps^{-d}$.\\
+Intuitively, we choose this to represent the dimension because a $d$-dimensional box of side $\eps$ has a ``$d$-dimensional volume'' $\eps^d$. So we end up with some $N(\eps) \approx \frac{V}{\eps^{d}} = C\eps^{-d}$. We want to find a $d$ for a fractal i.e. finding the $d$ such that the same scaling property holds.
+
+\subsection{Relationship to Hausdorff dimension}
+\begin{proposition}
+    For any bounded $S\subseteq\mathbb{R}^n$, $\Hd(S)\leq\Bd(S)$.
+\end{proposition}
+\begin{proof}
+    Let $d>\Bd(S)$. Then $N(\eps)\leq C\eps^{-\Bd(S)}$ for some constant $C$ and all small $\eps$. Covering $S$ with $N(\eps)$ hypercubes of diameter $\eps\sqrt{n}$:
+    \[
+    \Hm{d}_{\eps\sqrt{n}}(S)\leq N(\eps)\cdot(\eps\sqrt{n})^d\leq C(\sqrt{n})^d\cdot\eps^{d-\Bd(S)} \rightarrow0
+    \]
+    as $\eps\rightarrow0$. Hence $\Hm{d}(S)=0$, so $\Hd(S)\leq d$. Since $d>\Bd(S)$ was arbtirary, $\Hd(S)\leq\Bd(S)$.
+\end{proof}
+\noindent This is a very useful property as will be shown in the next few chapters. With this we now have a best upper bound for calculting the Hausdorff dimension. The equality actually holds on ``well-behaved'' fractals which is exactly what we need. 
 % ─────────────────────────────────────────────────────────────────────────────
 \newpage
 \printbibliography
 % ─────────────────────────────────────────────────────────────────────────────
 
-\end{document}
+\end{document}To calculate this dimension for a fractal S {\textstyle S}, imagine this fractal lying on an evenly spaced grid and count how many boxes are required to cover the set. The box-counting dimension is calculated by seeing how this number changes as we make the grid finer by applying a box-counting algorithm. 
