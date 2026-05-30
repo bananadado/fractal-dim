@@ -332,6 +332,33 @@ For a uniform IFS ($\forall i,\; r_i=r\in (0,1)$), the Moran equation gives $Nr^
     \caption{Koch snowflake with 4 iterations. \cite{img:koch}}
     \label{fig:koch}
 \end{figure}
+
+\section{Hilbert curve}
+This is possibly my favourite fractal that I'd like to explore. It is essentially a mapping from 1D to 2D space (earning the title space-filling curve).
+\subsection{Construction}
+The Hilbert curve is a continuous surjection $\gamma:[0,1]\rightarrow[0,1]^2$ constructed as the uniform limit of a sequence of piecewise-linear approximations $\gamma_n$. At order $n$, the curve $\gamma_n$ traverses all $4^n$ cells of a $2^n\times2^n$ grid, connecting cell centres via a path that divides each grid cell into four sub-cells connected in a U-shape, rotated and reflected to ensure the overall path shape is continuous. From this we can see directly that it has dimension 2 (even though its not closed), since we have 4 similarities with ratio $1/2$, giving $\log4/\log2 = 2$.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.3\textwidth]{images/Hilbert_curve_1.svg.png}
+    \caption{First iteration.}
+    \label{fig:h1}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.3\textwidth]{images/Hilbert_curve_2.svg.png}
+    \caption{Iterations 1 and 2.}
+    \label{fig:h2}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.3\textwidth]{images/Hilbert_curve_3.svg.png}
+    \caption{Iterations 1 to 3. \cite{img:example}}
+    \label{fig:h3}
+\end{figure}
+
+\section{Computational Estimation}
+TODO. (code first, write later).
+
 % ─────────────────────────────────────────────────────────────────────────────
 \newpage
 \printbibliography
