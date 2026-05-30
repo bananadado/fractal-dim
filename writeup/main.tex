@@ -30,6 +30,8 @@
     justification=centerlast  % last line centred, rest justified
 }
 
+\usepackage{subcaption} % in preamble
+
 % ── Hyperlinks ────────────────────────────────────────────────────────────────
 \usepackage[
   colorlinks = true,
@@ -93,7 +95,7 @@
 This entire paper is basically based on \cite{falconer2003}. This is just what I found when I wanted to look into this area.\\
 Classical dimension is usually viewed at as an integer e.g. a square is 2D. However, is there a way to consider dimension in another manner? Geometric objects in nature (e.g. coastlines, trees, etc.) exhibit self similarity at all scales and resist this classification. How do we measure the ``size'' for such a set? Is there a scaling property associated with dimension?\\
 This short write-up develops the measure theory needed to understand said property (Hausdorff measure and dimension), and introduces ways to compute measure (through the box-counting dimension). We use the Hilbert curve as a case study in which we can analytically derive the dimension and computationally estimate it.
-
+\newpage
 \section{Measure Theory}
 
 \noindent\textit{The material in this section is standard and follows 
@@ -186,6 +188,7 @@ defines an outer measure on $X$. This is precisely the construction used to
 define Hausdorff measure --- with $\mathcal{K}$ being all subsets of diameter 
 at most $\delta$, and $\tilde{\mu}(U) = |U|^s$.
 % ─────────────────────────────────────────────────────────────────────────────
+\newpage
 \section{Hausdorff Measure}
 The material in sections 3 and 4 follows \cite{falconer2003}.
 \subsection{Definition} Let ($X$, $d$) denote  a metric space, $S \subseteq X$ a Borel set. \\For a set $U \subseteq X$, write $|U| := $ diam($U$) $= sup_{x,y\in U}d(x, y)$
@@ -226,7 +229,7 @@ There exists a unique value $d\in[0, \infty]$ such that\[
 \]
 At $s=d$, the measure $\Hm{d}(S)$ may take any value in $[0, +\infty]$.
 \end{corollary}
-
+\newpage
 \section{Hausdorff Dimension}
 \begin{definition}
     (Hausdorff Dimension). The \textbf{Hausdorff Dimension} of S is the critical exponent\[
@@ -252,6 +255,7 @@ Hausdorff dimension satisfies the following:
 \begin{proof}
     If $\{U_i\}$ covers A with $\Sigma|U_i|^s<\infty$, then $\{f(U_i)\}$ covers $f(A)$ with $|f(U_i)|\leq C|U_i|$ (by Lipschitz), so $\Sigma|f(U_i)|^s\leq C^s\Sigma|U_i|^s<\infty$ Hence $\Hm{s}(f(A))\leq C^s\Hm{s}(A)$, and the dimension inequality follows.
 \end{proof}
+\newpage
 \section{Box-counting Dimension}
 \subsection{Definition}
 A.K.A Minkowski–Bouligand dimension.\\
@@ -274,7 +278,7 @@ Intuitively, we choose this to represent the dimension because a $d$-dimensional
     as $\eps\rightarrow0$. Hence $\Hm{d}(S)=0$, so $\Hd(S)\leq d$. Since $d>\Bd(S)$ was arbtirary, $\Hd(S)\leq\Bd(S)$.
 \end{proof}
 \noindent This is a very useful property as will be shown in the next few chapters. With this we now have a best upper bound for calculting the Hausdorff dimension. The equality actually holds on ``well-behaved'' fractals which is exactly what we need. 
-
+\newpage
 \section{Self-similar sets and Moran's theorem}
 This section explores \cite{fernandezmartinez2016moran}.
 \subsection{Iterated Function Systems}
@@ -304,7 +308,7 @@ This ensures the pieces of K do not overlap in a measure-theoretically significa
     \]
 \end{theorem}
 Uniqueness of $s$ follows from the fact that $\varphi(s)=\Sigma_ir_i^s$ is strictly decreasing in $s$, with $\varphi(0)=N>1$ and $\varphi(\infty)=0$.\\
-For a uniform IFS ($\forall i,\; r_i=r\in (0,1)$), the Moran equation gives $Nr^s=1$m hence $s=\log N/\log(1/r)$, which is the similarity dimension. A uniform IFS applies to all of your nice looking fractals. A non-uniform IFS (e.g. coastline) would have to have a numerical method of solving for this such as bisection or Newton's method.
+For a uniform IFS ($\forall i,\; r_i=r\in (0,1)$), the Moran equation gives $Nr^s=1$, hence $s=\log N/\log(1/r)$, which is the similarity dimension. A uniform IFS applies to all of your nice looking fractals. A non-uniform IFS (e.g. coastline) would have to have a numerical method of solving for this such as bisection or Newton's method.
 \subsection{Examples}
 \begin{example}{(Cantor set).}
     There are two similarities on $[0, 1]$, each with ratio $r=1/3$. We know this since at each iteration each line segment is replaced by 2 line segments, each a third of the length of the original. By Moran's theorem: $2\cdot(1/3)^s=1$, so $s=\log2/\log3\approx0.63092975$
@@ -324,6 +328,7 @@ For a uniform IFS ($\forall i,\; r_i=r\in (0,1)$), the Moran equation gives $Nr^
     \caption{Serpi\'{n}ski triangle. \cite{img:sierpinski}}
     \label{fig:sierpinski}
 \end{figure}
+\newpage
 \begin{example}{(Koch curve).}
     There are four similarities each with ratio $r=1/3$. By Moran's theorem: $4\cdot(1/3)^s=1$, so $s=\log4/\log3\approx1.26185951$
 \end{example}
@@ -333,30 +338,40 @@ For a uniform IFS ($\forall i,\; r_i=r\in (0,1)$), the Moran equation gives $Nr^
     \caption{Koch snowflake with 4 iterations. \cite{img:koch}}
     \label{fig:koch}
 \end{figure}
-
+\newpage
 \section{Hilbert curve}
 This is possibly my favourite fractal that I'd like to explore. It is essentially a mapping from 1D to 2D space (earning the title space-filling curve).
 \subsection{Construction}
 The Hilbert curve is a continuous surjection $\gamma:[0,1]\rightarrow[0,1]^2$ constructed as the uniform limit of a sequence of piecewise-linear approximations $\gamma_n$. At order $n$, the curve $\gamma_n$ traverses all $4^n$ cells of a $2^n\times2^n$ grid, connecting cell centres via a path that divides each grid cell into four sub-cells connected in a U-shape, rotated and reflected to ensure the overall path shape is continuous. From this we can see directly that it has dimension 2 (even though its not closed), since we have 4 similarities with ratio $1/2$, giving $\log4/\log2 = 2$.
+
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.3\textwidth]{images/Hilbert_curve_1.svg.png}
-    \caption{First iteration.}
-    \label{fig:h1}
-\end{figure}
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.3\textwidth]{images/Hilbert_curve_2.svg.png}
-    \caption{Iterations 1 and 2.}
-    \label{fig:h2}
-\end{figure}
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.3\textwidth]{images/Hilbert_curve_3.svg.png}
-    \caption{Iterations 1 to 3. \cite{img:example}}
-    \label{fig:h3}
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/Hilbert_curve_1.svg.png}
+        \caption{First iteration.}
+        \label{fig:h1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/Hilbert_curve_2.svg.png}
+        \caption{Iterations 1 and 2.}
+        \label{fig:h2}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/Hilbert_curve_3.svg.png}
+        \caption{Iterations 1 to 3.}
+        \label{fig:h3}
+    \end{subfigure}
+    \caption{Hilbert curve approximations. \cite{img:example}}
 \end{figure}
 
+\subsection{Properties of the limit curve}
+
+\newpage
 \section{Computational Estimation}
 TODO. (code first, write later).
 
