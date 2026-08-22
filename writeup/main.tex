@@ -1,0 +1,531 @@
+\documentclass[11pt, a4paper]{article}
+
+% ── Encoding & fonts ──────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% ── Mathematics ───────────────────────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}          % extends amsmath
+\usepackage{bbm}                % \mathbbm{1} indicator function
+
+
+% ── Layout ────────────────────────────────────────────────────────────────────
+\usepackage[margin=1.2in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Figures & colour ──────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[dvipsnames]{xcolor}
+
+\usepackage{caption}
+\captionsetup{
+    font=small,        % smaller font than body text
+    labelfont=bf,      % "Figure 1" in bold
+    margin=1cm,        % indent the caption from the edges
+    justification=centerlast  % last line centred, rest justified
+}
+
+\usepackage{subcaption} % in preamble
+
+% ── Hyperlinks ────────────────────────────────────────────────────────────────
+\usepackage[
+  colorlinks = true,
+  linkcolor  = MidnightBlue,
+  citecolor  = MidnightBlue,
+  urlcolor   = MidnightBlue
+]{hyperref}
+
+% ── References ────────────────────────────────────────────────────────────────
+\usepackage[
+  backend  = biber,
+  style    = alphabetic,
+  sorting  = nyt
+]{biblatex}
+\addbibresource{refs.bib}
+
+% ── Theorem environments ──────────────────────────────────────────────────────
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ── Operators & shorthands ────────────────────────────────────────────────────
+\DeclareMathOperator{\diam}{diam}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Hm}[1]{\mathcal{H}^{#1}}   % Hausdorff measure
+\newcommand{\Hd}{\dim_{\mathcal{H}}}     % Hausdorff dimension
+\newcommand{\Bd}{\dim_{\mathrm{box}}}    % box-counting dimension
+\newcommand{\eps}{\varepsilon}
+\newcommand{\Z}{\mathbb{Z}}
+
+% ─────────────────────────────────────────────────────────────────────────────
+
+\title{%
+  \textbf{Fractal Dimension: Theory and Computation}\\[0.4em]
+  \large Box-Counting Estimation via Hilbert Curve Analysis
+}
+\author{ME}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+% ─────────────────────────────────────────────────────────────────────────────
+
+This entire paper is basically based on \cite{falconer2003}. This is just what I found when I wanted to look into this area.\\
+Classical dimension is usually viewed at as an integer e.g. a square is 2D. However, is there a way to consider dimension in another manner? Geometric objects in nature (e.g. coastlines, trees, etc.) exhibit self similarity at all scales and resist this classification. How do we measure the ``size'' for such a set? Is there a scaling property associated with dimension?\\
+This short write-up develops the measure theory needed to understand said property (Hausdorff measure and dimension), and introduces ways to compute measure (through the box-counting dimension). We use the Hilbert curve as a case study in which we can analytically derive the dimension and computationally estimate it.
+\newpage
+\section{Measure Theory}
+
+\noindent\textit{The material in this section is standard and follows 
+the presentation in \cite{menegaki2026}.}\\\\
+First to define measure theory (I didn't take Lebesgue so I will be using the above notes...)\\\\
+A measure is a way to assign a ``size'' to subsets of a set X. Let $\mathcal{F}$ be a $\sigma$-algebra on X.\\
+\begin{definition} (Measure). Let (\textit{X}, $\mathcal{F}$) be a measurable space. A measure on (X, $\mathcal{F}$) is a function $\mu : \mathcal{F} \rightarrow [0, \infty]$ satisfying:
+\begin{enumerate}
+\item $\mu(\emptyset) = 0$
+\item \textbf{Countable additivity:} if $A_1, A_2, \ldots \in \mathcal{F}$ are 
+    pairwise disjoint, then
+    \[
+      \mu\!\left(\bigsqcup_{i=1}^{\infty} A_i\right) = \sum_{i=1}^{\infty} \mu(A_i)
+    \]
+\end{enumerate}
+The triple $(X, \mathcal{F}, \mu)$ is called a \textbf{measure space}.
+\end{definition}
+\vspace{2pt}\begin{proposition}[Basic properties]
+  Let $(X, \mathcal{F}, \mu)$ be a measure space.
+  \begin{enumerate}
+    \item \textbf{Monotonicity}: \[A \subseteq B \Rightarrow \mu(A) \leq \mu(B)\]
+    \item \textbf{Countable subadditivity}: 
+    \[\mu\!\left(\bigcup_{i=1}^{\infty} A_i\right) \leq \sum_{i=1}^{\infty} \mu(A_i)\]
+    \item \textbf{Continuity from below}: if $A_1 \subseteq A_2 \subseteq \cdots$ then
+    \[
+      \mu\!\left(\bigcup_{i=1}^{\infty} A_i\right) = \lim_{i \to \infty} \mu(A_i)
+    \]
+    \item \textbf{Continuity from above}: if $A_1 \supseteq A_2 \supseteq \cdots$ 
+    and $\mu(A_1) < \infty$ then
+    \[
+      \mu\!\left(\bigcap_{i=1}^{\infty} A_i\right) = \lim_{i \to \infty} \mu(A_i)
+    \]
+  \end{enumerate}
+\end{proposition}
+
+The canonical example is the \textbf{Lebesgue measure} $\lambda^n$ on 
+$(\R^n, \mathcal{B}(\R^n))$, where $\mathcal{B}(\R^n)$ is the Borel $\sigma$-algebra 
+--- the smallest $\sigma$-algebra containing all open sets. Lebesgue measure assigns 
+to each box $[a_1, b_1] \times \cdots \times [a_n, b_n]$ its volume 
+$(b_1 - a_1) \cdots (b_n - a_n)$, and extends uniquely to all Borel sets. It 
+formalises the intuitive notions of length, area, and volume.
+
+The inadequacy of Lebesgue measure for fractal geometry is immediate: a curve 
+$\gamma \subset \R^2$ has $\lambda^2(\gamma) = 0$ (zero area) but $\lambda^1(\gamma)$ 
+may be infinite (infinite length). Neither gives useful information about the 
+``size'' of $\gamma$. What is needed is a family of measures parametrised by a 
+continuous exponent $s \geq 0$.
+
+To construct such a family, we need the notion of an outer measure, which is 
+slightly weaker than a measure --- it is defined on \emph{all} subsets of $X$, 
+not just measurable ones, and only requires subadditivity rather than full 
+additivity.
+
+\begin{definition}[Outer measure]
+  A function $\mu^* : 2^X \to [0, \infty]$ is an \textbf{outer measure} on $X$ if:
+  \begin{enumerate}
+    \item $\mu^*(\emptyset) = 0$
+    \item \textbf{Monotonicity}: $A \subseteq B \Rightarrow \mu^*(A) \leq \mu^*(B)$
+    \item \textbf{Countable subadditivity}:
+    \[
+      \mu^*\!\left(\bigcup_{i=1}^{\infty} A_i\right) 
+      \leq \sum_{i=1}^{\infty} \mu^*(A_i)
+    \]
+  \end{enumerate}
+\end{definition}
+
+The relationship between outer measures and measures is given by the
+Hahn-Carath\'{e}odory extension theorem: given an outer measure $\mu^*$ on $X$, the collection
+\[
+  \Sigma = \{A \subseteq X : \mu^*(B) = \mu^*(B \cap A) + \mu^*(B \setminus A) 
+  \text{ for all } B \subseteq X\}
+\]
+is a $\sigma$-algebra, and $\mu^*|_{\Sigma}$ is a measure. Sets in 
+$\Sigma$ are called \textbf{$\mu^*$-measurable}. In particular, all Borel sets  
+are $\mu^*$-measurable whenever $\mu^*$ is constructed from a Borel-compatible 
+pre-measure --- which will be the case for Hausdorff measure.
+
+The standard way to construct an outer measure is via coverings. If 
+$\mathcal{K} \subseteq 2^X$ covers $X$ (with $\emptyset \in \mathcal{K}$) and 
+$\tilde{\mu} : \mathcal{K} \to [0, \infty]$ assigns sizes to sets in $\mathcal{K}$ 
+with $\tilde{\mu}(\emptyset) = 0$, then
+\[
+  \mu^*(A) = \inf\left\{
+    \sum_{i=1}^{\infty} \tilde{\mu}(K_i) 
+    \;\middle|\; 
+    K_i \in \mathcal{K},\ A \subseteq \bigcup_{i=1}^{\infty} K_i
+  \right\}
+\]
+defines an outer measure on $X$. This is precisely the construction used to 
+define Hausdorff measure --- with $\mathcal{K}$ being all subsets of diameter 
+at most $\delta$, and $\tilde{\mu}(U) = |U|^s$.
+% ─────────────────────────────────────────────────────────────────────────────
+\newpage
+\section{Hausdorff Measure}
+The material in sections 3 and 4 follows \cite{falconer2003}.
+\subsection{Definition} Let ($X$, $d$) denote  a metric space, $S \subseteq X$ a Borel set. \\For a set $U \subseteq X$, write $|U| := $ diam($U$) $= sup_{x,y\in U}d(x, y)$
+\begin{definition}
+    Let $s \geq 0,$ and $\delta > 0$. Define \[
+    \Hm{s}_\delta(S) = \inf\left\{
+      \sum_{i=1}^{\infty} |U_i|^s 
+      \;\middle|\; 
+      S \subseteq \bigcup_{i=1}^{\infty} U_i,\ |U_i| \leq \delta
+    \right\}
+    \]
+    This is the infimum over all countable covers of S by sets of diameter at most $\delta$.
+\end{definition}
+\noindent As $\delta \rightarrow 0$, we allow fewer and fewer covers, so $\Hm{s}_\delta(S)$ is non-decreasing in $1/\delta$. The limit \[
+\Hm{s}(S) = \lim\limits_{\delta\rightarrow 0}\Hm{s}_{\delta}(S)\in [0, \infty]
+\]
+is the $s$-dimensional Hausdorff measure of $S$. This is possibly $+\infty$.\\
+$\Hm{s}$ is an outer measure on $X$, and its restriction to the Borel $\sigma$-algebra is a measure. 
+
+\subsection{Phase Transition}
+Observe that $\Hm{s}(S)$ exhibits a phase transition in $s$:
+\begin{theorem}
+    If $\Hm{s}(S) < \infty$ for some $s$, then $\Hm{t}(S) = 0$ for all $t > s$.
+\end{theorem}
+\begin{proof}
+    Suppose $\Hm{s}(S) < \infty$. For any cover $\{U_i\}$ with $|U_i| \leq \delta$. For $t>s$:\[
+    \Sigma|U_i|^t=\Sigma|U_i|^{t-s}\cdot|U_i|^s\leq\delta^{t-s}\Sigma|U_i|^s
+    \]
+    Taking the infimum over all covers gives \[\Hm{t}_\delta(S) \leq \delta^{t-s}\cdot\Hm{s}_\delta(S)\leq\delta^{t-s}\cdot\Hm{s}(S)\] where the second inequality holds since $\Hm{s}_\delta(S)$ is non-decreasing in $1/\delta$.\\
+    Now let $\delta\rightarrow0$, $t-s>0$, and $\Hm{s}(S) < \infty$ is a fixed finite constant. So the right hand side goes to 0, hence $\Hm{t}(S)=0$.
+\end{proof}
+\begin{corollary}
+There exists a unique value $d\in[0, \infty]$ such that\[
+\Hm{s}(S) = \begin{cases} 
+\text{$\infty$}&\text{$s < d$}\\
+\text{$0$}&\text{$s > d$}
+\end{cases}
+\]
+At $s=d$, the measure $\Hm{d}(S)$ may take any value in $[0, +\infty]$.
+\end{corollary}
+\newpage
+\section{Hausdorff Dimension}
+\begin{definition}
+    (Hausdorff Dimension). The \textbf{Hausdorff Dimension} of S is the critical exponent\[
+    \Hd(S) = \text{inf}\{s\geq0:\Hm{s}(S)=0\} = \text{sup}\{s\geq0:\Hm{s}(S)=+\infty\}
+    \]
+\end{definition}
+\noindent This is the ``true'' dimension of a fractal.
+\subsection{Basic Properties}
+\begin{proposition}[Basic properties]
+Hausdorff dimension satisfies the following:
+\begin{enumerate}
+    \item \textbf{Monotonicity}: $A \subseteq B \implies \Hd(A) \leq \Hd(B)$
+    \item \textbf{Countable stability}: $\Hd(\cup_{i=1}^{\infty}A_i)=\sup_i\Hd(A_i)$
+    \item \textbf{Countable sets}: if $S$ is countable, $\Hd(S) = 0$.
+    \item \textbf{Smooth manifolds
+\footnote{A smooth $k$-dimensional manifold is just a set that locally looks like $\mathbb{R}^k$}}: if $M \subset \mathbb{R}^n$ is a smooth k-dimensional submanifold, then $\Hd(M) = k$.
+  \end{enumerate}
+\end{proposition}
+\vspace{5pt}\noindent The following proposition is a useful tool we'll need later down the line:
+\begin{proposition}{(Lipschitz invariance).}
+    Let $f: A\rightarrow B$ be Lipschitz with constant C. Then $\Hd(f(A))\leq\Hd(A)$. In particular, bi-Lipschitz maps preserve Hausdorff dimensions.
+\end{proposition}
+\begin{proof}
+    If $\{U_i\}$ covers A with $\Sigma|U_i|^s<\infty$, then $\{f(U_i)\}$ covers $f(A)$ with $|f(U_i)|\leq C|U_i|$ (by Lipschitz), so $\Sigma|f(U_i)|^s\leq C^s\Sigma|U_i|^s<\infty$ Hence $\Hm{s}(f(A))\leq C^s\Hm{s}(A)$, and the dimension inequality follows.
+\end{proof}
+\newpage
+\section{Box-counting Dimension}
+\subsection{Definition}
+A.K.A Minkowski–Bouligand dimension.\\
+We need a way to be able to effectively compute the dimension of a fractal (i.e. the Hausdorff dimension). A perhaps easy way to do this is to cover said shape with boxes of size $\eps$ and count them. We check to see how the number of boxes hitting the shape $N(\eps)$ changes w.r.t the length $\eps$. We use the following formula: 
+\[
+\Bd(S) := \lim\limits_{\eps\rightarrow0}\frac{\log N(\eps)}{\log (1/\eps)} = -\lim\limits_{\eps\rightarrow0}\frac{\log N(\eps)}{\log (\eps)}
+\]
+This is roughly the dimension $d$ such that $N(\eps) \approx C\eps^{-d}$.\\
+Intuitively, we choose this to represent the dimension because a $d$-dimensional box of side $\eps$ has a ``$d$-dimensional volume'' $\eps^d$. So we end up with some $N(\eps) \approx \frac{V}{\eps^{d}} = C\eps^{-d}$. We want to find a $d$ for a fractal i.e. finding the $d$ such that the same scaling property holds.
+
+\subsection{Relationship to Hausdorff dimension}
+\begin{proposition}
+    For any bounded $S\subseteq\mathbb{R}^n$, $\Hd(S)\leq\Bd(S)$.
+\end{proposition}
+\begin{proof}
+    Let $d>\Bd(S)$. Then $N(\eps)\leq C\eps^{-\Bd(S)}$ for some constant $C$ and all small $\eps$. Covering $S$ with $N(\eps)$ hypercubes of diameter $\eps\sqrt{n}$:
+    \[
+    \Hm{d}_{\eps\sqrt{n}}(S)\leq N(\eps)\cdot(\eps\sqrt{n})^d\leq C(\sqrt{n})^d\cdot\eps^{d-\Bd(S)} \rightarrow0
+    \]
+    as $\eps\rightarrow0$. Hence $\Hm{d}(S)=0$, so $\Hd(S)\leq d$. Since $d>\Bd(S)$ was arbtirary, $\Hd(S)\leq\Bd(S)$.
+\end{proof}
+\noindent This is a very useful property as will be shown in the next few chapters. With this we now have a best upper bound for calculting the Hausdorff dimension. The equality actually holds on ``well-behaved'' fractals which is exactly what we need. 
+\newpage
+\section{Self-similar sets and Moran's theorem}
+This section explores \cite{fernandezmartinez2016moran}.
+\subsection{Iterated Function Systems}
+\begin{definition}{(IFS and attractor).}
+    An \textbf{iterated function system} (IFS) is a finite collection of contractions\footnote{A contraction $f$ is a function such that $d(f(x), f(y))\leq\alpha\cdot d(x,y)$, where $\alpha\in[0,1)$.} $\{f_1,...,f_N\}$ on a complete\footnote{A complete metric space is one such that every Cauchy sequence converges.} metric space $(X, d)$, where each $f_i$ has Lipschitz constant $r_i\in(0,1)$. The map $F(K)=\cup_{i=1}^Nf_i(K)$ on the space of compact\footnote{Compact sets are closed and bounded.} subsets of $X$ (using the Hausdorff metric - $d_H(A, B) = \max(\sup_{a\in A}d(a, B), \sup_{b\in B}d(b, A))$) is itself a contraction, so by the Banach fixed-point theorem there exists a unique compact \textbf{attractor} $K\subseteq X$ such that:
+    \[
+    K = \bigcup\limits_{i=1}^Nf_i(K)
+    \]
+\end{definition}
+\begin{definition}{(Open set condition).}
+    The IFS ${f_1,...,f_N}$ satisfies the \textbf{open set condition} (OSC) if there exists a non-empty bounded open set $V\subseteq X$ such that:
+    \[
+    \bigcup\limits_{i=1}^Nf_i(V)\subseteq V, \quad f_i(V)\cap f_j(V)=\emptyset \;\;\text{for}\;\; i\neq j
+    \]
+\end{definition}
+This ensures the pieces of K do not overlap in a measure-theoretically significant way, which is necessary for the dimension formula to hold. Basically, any overlap would cause the dimension estimate to corrupt.
+
+\subsection{Moran's theorem}
+\begin{theorem}{(Moran, 1946).}
+    Let $\{f_1,...f_N\}$ be an IFS of similarities on $\mathbb{R}^n$ with contraction ratios $r_1,...r_N\in (0,1)$, satisfying the OSC. Let $K$ be its attractor. Then
+    \[
+    \Hd(K)=\Bd(K)=s\text{,}
+    \]
+    where $s$ is the unique solution to the \textbf{Moran equation}
+    \[
+    \sum\limits_{i=1}^Nr_i^s=1.
+    \]
+\end{theorem}
+Uniqueness of $s$ follows from the fact that $\varphi(s)=\Sigma_ir_i^s$ is strictly decreasing in $s$, with $\varphi(0)=N>1$ and $\varphi(\infty)=0$.\\
+For a uniform IFS ($\forall i,\; r_i=r\in (0,1)$), the Moran equation gives $Nr^s=1$, hence $s=\log N/\log(1/r)$, which is the similarity dimension. A uniform IFS applies to all of your nice looking fractals. A non-uniform IFS (e.g. coastline) would have to have a numerical method of solving for this such as bisection or Newton's method.
+\subsection{Examples}
+\begin{example}{(Cantor set).}
+    There are two similarities on $[0, 1]$, each with ratio $r=1/3$. We know this since at each iteration each line segment is replaced by 2 line segments, each a third of the length of the original. By Moran's theorem: $2\cdot(1/3)^s=1$, so $s=\log2/\log3\approx0.63092975$
+\end{example}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/Cantor.png}
+    \caption{Cantor set construction (takes all values that aren't removed). \cite{img:cantor}}
+    \label{fig:cantor}
+\end{figure}
+\begin{example}{(Serpi\'{n}ski triangle).}
+    There are three similarities each with ratio $r=1/2$. By Moran's theorem: $3\cdot(1/2)^s=1$, so $s=\log3/\log2\approx1.58496250$
+\end{example}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/Sierpinski_triangle.svg.png}
+    \caption{Serpi\'{n}ski triangle. \cite{img:sierpinski}}
+    \label{fig:sierpinski}
+\end{figure}
+\newpage
+\begin{example}{(Koch curve).}
+    There are four similarities each with ratio $r=1/3$. By Moran's theorem: $4\cdot(1/3)^s=1$, so $s=\log4/\log3\approx1.26185951$
+\end{example}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/KochFlake.svg.png}
+    \caption{Koch snowflake with 4 iterations. \cite{img:koch}}
+    \label{fig:koch}
+\end{figure}
+\newpage
+\newpage
+\section{L-systems}
+Moran's theorem gives the dimension of an IFS attractor, but specifying an IFS by hand is long. 
+L-systems\footnote{Introduced by Lindenmayer in 1968 tomodel plant growth; see \cite{prusinkiewicz1990abop}.} provide a purely symbolic description of the same objects, from which $\lambda$ and $k$ can be recovered almost mechanically. 
+This gives us a family of fractals with exactly known dimension, which we will use in \S9 to validate the box-counting estimator.
+
+\subsection{Definition}
+\begin{definition}{(D0L-system).}
+    A \textbf{deterministic context-free L-system} is a triple $G=(V,\omega,P)$ where $V$ is a finite alphabet, $\omega\in V^+$ is the \textbf{axiom}, and $P:V\to V^*$ assigns a \textbf{production} to each symbol. Writing $\omega_0=\omega$, the word $\omega_{n+1}$ is obtained from $\omega_n$ by replacing \emph{every} symbol simultaneously by its production.
+\end{definition}
+\noindent We need parallel writing here so that every part of the word changes at the same rate for self-similarity.
+
+\subsection{Turtle interpretation}
+\begin{definition}{(Turtle interpretation).}
+    Fix a step length $\ell>0$ and a turning angle $\delta$. A turtle has state
+    $(x,y,\alpha)\in\R^2\times[0,2\pi)$. Reading a word left to right:
+    \begin{itemize}
+        \item \texttt{F}: move forward $\ell$, drawing a segment;
+        \item \texttt{f}: move forward $\ell$ without drawing;
+        \item \texttt{+}, \texttt{-}: turn left, right by $\delta$.
+    \end{itemize}
+    Symbols with no geometric interpretation are ignored. Write $\gamma_n$ for the drawn figure of $\omega_n$ with step length $\ell_n$.
+\end{definition}
+\noindent Note that the grammar alone does not determine a curve: the angle
+$\delta$ and the choice of $\ell_n$ are geometric data supplied separately.
+
+\subsection{The growth matrix}
+\begin{definition}{(Substitution matrix).}
+    For $G=(V,\omega,P)$ with $V=\{a_1,\dots,a_m\}$, the \textbf{substitution
+    matrix} $M\in\N^{m\times m}$ is given by
+    \[
+    M_{ij}=\#\{\text{occurrences of } a_j \text{ in } P(a_i)\}.
+    \]
+\end{definition}
+\subsection{Growth of the substitution matrix}
+Let $v_n\in\N^m$ record the symbol counts of $\omega_n$, so that $v_{n+1}=v_nM$
+and hence $v_n=v_0M^n$. Since box-counting sees only the drawn segments, the
+quantity of interest is the \texttt{F}-component of $v_n$.
+
+\begin{theorem}{(Perron--Frobenius).}\label{thm:pf}
+    Let $M$ be a square matrix with non-negative entries and spectral radius
+    $\lambda=\max_i|\lambda_i|$. Then $\lambda$ is an eigenvalue of $M$, with a
+    non-negative eigenvector. If moreover $M$ is irreducible, then $\lambda$ is
+    simple, satisfies $\lambda>|\lambda_i|$ for every other eigenvalue, and its
+    eigenvector may be taken strictly positive.
+\end{theorem}
+
+\noindent Expanding $v_0$ in a basis of left eigenvectors gives
+$v_n=\sum_i c_i\lambda_i^nu_i$; dividing by $\lambda^n$ shows every subdominant
+term vanishes, so $v_n\sim c_1\lambda^nu_1$ and $\|v_n\|=\Theta(\lambda^n)$.
+Perron--Frobenius is what rules out a complex or sign-alternating dominant
+eigenvalue, which would make $\|v_n\|$ oscillate rather than converge.
+
+\begin{example}{(Hilbert).}\label{ex:hilbert}
+    The Hilbert curve is generated by
+    \[
+    A\to\texttt{+BF-AFA-FB+},\qquad B\to\texttt{-AF+BFB+FA-},\qquad
+    \delta=90^\circ,
+    \]
+    with $\texttt{F}\to\texttt{F}$. Here $A$ and $B$ carry the recursion and are
+    ignored by the turtle; two are needed because the four sub-cells occur in
+    both handednesses. On $(A,B,F)$,
+    \[
+    M=\begin{pmatrix}2&2&3\\2&2&3\\0&0&1\end{pmatrix}.
+    \]
+    With $v_0=(1,0,0)$ the counts are $v_1=(2,2,3)$, $v_2=(8,8,15)$,
+    $v_3=(32,32,63)$, so the number of drawn segments at level $n$ is $4^n-1$.
+    The eigenvalues of $M$ are $4,1,0$, and correspondingly
+    $F_n=1\cdot4^n-1\cdot1^n$: the dominant eigenvalue sets the growth rate and
+    the subdominant one contributes the correction. Note $v_3\approx
+    32\cdot(1,1,2)$, the dominant left eigenvector.
+\end{example}
+
+\begin{remark}{(Reducibility).}
+    The matrix above is reducible: the associated digraph has edges
+    $A,B\to F$ but none from $F$ back, so it is not strongly connected and the
+    strong form of \ref{thm:pf} does not apply. The conclusion survives because
+    \texttt{F} is reachable from the block $\{A,B\}$ carrying the dominant
+    eigenvalue. In general it suffices that the drawn symbols be reachable from
+    the dominant block.
+\end{remark}
+
+\begin{proposition}{(Dimension of a D0L-system).}\label{prop:d0l}
+    Let $G$ be a D0L-system with substitution matrix $M$, let $\lambda$ be the
+    spectral radius of $M$, and suppose the turtle interpretation admits a
+    scaling factor $k>1$, meaning that $\gamma_n$ is drawn with step length
+    $\ell_n=k^{-n}$ and the level-$n$ figure is a union of $\Theta(\lambda^n)$
+    segments of that length. Then
+    \[
+    \Bd(K)\leq\frac{\log\lambda}{\log k},
+    \]
+    where $K=\lim_n\gamma_n$, with equality when the induced IFS satisfies the OSC.
+\end{proposition}
+\begin{proof}
+    By Perron--Frobenius the number of drawn symbols in $\omega_n$ grows as
+    $\Theta(\lambda^n)$. Covering $K$ at scale $\eps=k^{-n}$ requires
+    $N(\eps)=O(\lambda^n)$ boxes, so
+    \[
+    \frac{\log N(\eps)}{\log(1/\eps)}\leq\frac{n\log\lambda+O(1)}{n\log k}
+    \longrightarrow\frac{\log\lambda}{\log k}.
+    \]
+    Under the OSC the drawn segments overlap only at endpoints, so the count is
+    $\Theta(\lambda^n)$ from below as well and the limit is attained.
+\end{proof}
+\noindent The content of \ref{prop:d0l} is a separation of concerns: $\lambda$
+is \textbf{combinatorial}, obtained from the grammar alone, whereas $k$ is
+\textbf{geometric}, determined by $\delta$ and the net displacement of the turtle
+after one production. Neither determines the dimension by itself.
+
+\begin{remark}{(Why the spectral radius, not a symbol count).}
+    For an edge-rewriting system such as Koch ($\texttt{F}\to\texttt{F+F--F+F}$)
+    one has $M=(4)$ and $\lambda=4$, recovering the naive count of \texttt{F}
+    symbols. For a \emph{node}-rewriting system it fails: in
+    Example~\ref{ex:hilbert} each production contains three \texttt{F}s, which
+    would suggest $\log3/\log2\approx1.585$, whereas the spectral radius gives
+    the correct $\log4/\log2=2$. The discrepancy is that the $A$ and $B$ symbols
+    in each expansion themselves generate further \texttt{F}s at the next level.
+\end{remark}
+
+\subsection{A validation family}
+\begin{table}[h]
+\centering
+\begin{tabular}{llccl}
+\hline
+Fractal & Production(s) & $\delta$ & $\lambda/k$ & Dimension \\
+\hline
+Cantor & \texttt{F}$\to$\texttt{FfF}, \texttt{f}$\to$\texttt{ff}
+    & --- & $2/3$ & $0.630930$ \\
+Koch & \texttt{F}$\to$\texttt{F+F--F+F}
+    & $60^\circ$ & $4/3$ & $1.261860$ \\
+Minkowski & \texttt{F}$\to$\texttt{F+F-F-FF+F+F-F}
+    & $90^\circ$ & $8/4$ & $1.5$ \\
+Arrowhead & \texttt{A}$\to$\texttt{B-A-B}, \texttt{B}$\to$\texttt{A+B+A}
+    & $60^\circ$ & $3/2$ & $1.584963$ \\
+Peano & \texttt{F}$\to$\texttt{F+F-F-F-F+F+F+F-F}
+    & $90^\circ$ & $9/3$ & $2$ \\
+Hilbert & see \ref{ex:hilbert}
+    & $90^\circ$ & $4/2$ & $2$ \\
+\hline
+\end{tabular}
+\caption{L-systems with exactly known dimension, used in \S9 as ground truth.}
+\label{tab:lsystems}
+\end{table}
+
+\noindent These span $[0.63,\,2]$ and are generated by a single implementation,
+so they provide a controlled test of the box-counting estimator against known
+values before it is applied to cases where the answer is not known in advance.
+\newpage
+\section{Hilbert curve}
+This is possibly my favourite fractal that I'd like to explore. It is essentially a mapping from 1D to 2D space (earning the title space-filling curve).
+\subsection{Construction}
+The Hilbert curve is a continuous surjection $\gamma:[0,1]\rightarrow[0,1]^2$ constructed as the uniform limit of a sequence of piecewise-linear approximations $\gamma_n$. At order $n$, the curve $\gamma_n$ traverses all $4^n$ cells of a $2^n\times2^n$ grid, connecting cell centres via a path that divides each grid cell into four sub-cells connected in a U-shape, rotated and reflected to ensure the overall path shape is continuous. From this we can see directly that it has dimension 2 (even though its not closed), since we have 4 similarities with ratio $1/2$, giving $\log4/\log2 = 2$.
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/Hilbert_curve_1.svg.png}
+        \caption{First iteration.}
+        \label{fig:h1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/Hilbert_curve_2.svg.png}
+        \caption{Iterations 1 and 2.}
+        \label{fig:h2}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/Hilbert_curve_3.svg.png}
+        \caption{Iterations 1 to 3.}
+        \label{fig:h3}
+    \end{subfigure}
+    \caption{Hilbert curve approximations. \cite{img:example}}
+\end{figure}
+
+\subsection{Properties of the limit curve}
+
+\newpage
+\section{Computational Estimation}
+TODO. (code first, write later).
+
+% ─────────────────────────────────────────────────────────────────────────────
+\newpage
+\printbibliography
+% ─────────────────────────────────────────────────────────────────────────────
+
+\end{document}
