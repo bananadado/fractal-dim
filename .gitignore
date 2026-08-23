@@ -226,3 +226,6 @@ __marimo__/
 *.run.xml
 *.blg
 *.bbl
+
+# fractaldim renders (the default -o destination; all regenerable)
+output/
