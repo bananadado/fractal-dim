@@ -77,6 +77,81 @@ def _cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def _format_matrix(alphabet: str, matrix) -> list[str]:
+    """The substitution matrix as aligned rows, labelled by symbol."""
+    width = max(2, max(len(str(int(v))) for v in matrix.flat) if matrix.size else 2)
+    header = "     " + " ".join(f"{symbol:>{width}s}" for symbol in alphabet)
+    lines = [header]
+    for symbol, row in zip(alphabet, matrix):
+        cells = " ".join(f"{int(value):{width}d}" for value in row)
+        lines.append(f"  {symbol}  {cells}")
+    return lines
+
+
+def _cmd_growth(args: argparse.Namespace) -> int:
+    from .growth import analyse
+
+    names = [args.name] if args.name else library.names()
+    if not args.name:
+        header = (f"{'name':18s} {'lambda':>7s} {'rho(M)':>7s} {'k':>9s} "
+                  f"{'from':>8s} {'dimension':>10s} {'reference':>10s}")
+        print(header)
+        print("-" * len(header))
+
+    for name in names:
+        fractal = library.get(name)
+        result = analyse(fractal.system, fractal.commands, fractal.start_heading)
+        reference = fractal.dimension
+        dimension = result.dimension
+
+        if not args.name:
+            ref = "        --" if reference is None else f"{reference:10.6f}"
+            dim = "        --" if dimension is None else f"{dimension:10.6f}"
+            k = "       --" if result.k is None else f"{result.k:9.6f}"
+            print(f"{name:18s} {result.lam:7.3f} {result.rho:7.3f} {k} "
+                  f"{result.k_method:>8s} {dim} {ref}")
+            continue
+
+        print(f"{fractal.system}\n")
+        print(f"substitution matrix over {{{', '.join(result.alphabet)}}}")
+        for line in _format_matrix(result.alphabet, result.matrix):
+            print(line)
+        if not result.irreducible:
+            print("  reducible: M's digraph is not strongly connected, so "
+                  "Perron-Frobenius\n  applies only componentwise (Remark 6.7)")
+        print()
+        print(f"  drawn symbols   {result.drawn or '(none)'}")
+        print(f"  lambda          {result.lam:.6f}   growth rate of drawn symbols")
+        print(f"  rho(M)          {result.rho:.6f}   spectral radius")
+        if result.dominant_is_undrawn:
+            print("                  ^ these differ: the dominant eigenvalue "
+                  "belongs to undrawn\n                    symbols, so rho(M) "
+                  "is not the lambda of Proposition 6.9")
+        if result.k is None:
+            print("  k               could not be determined")
+        else:
+            source = ("net displacement of a drawn production"
+                      if result.k_method == "exact"
+                      else f"figure diameter, levels up to {result.measured_level}")
+            print(f"  k               {result.k:.6f}   {source}")
+        if result.k_measured is not None and result.k_method == "exact":
+            agree = "agrees" if result.k_agrees else "DISAGREES"
+            print(f"  k (measured)    {result.k_measured:.6f}   "
+                  f"independent check at level {result.measured_level}: {agree}")
+        if result.branching:
+            print("  dimension       not defined: the system branches, so the "
+                  "figure is not a\n                  union of congruent scaled "
+                  "copies and Moran's theorem\n                  does not apply")
+        elif dimension is not None:
+            print(f"  dimension       {dimension:.6f}   = log({result.lam:g})"
+                  f" / log({result.k:g})")
+            if reference is not None:
+                delta = abs(dimension - reference)
+                verdict = "matches" if delta < 1e-6 else f"differs by {delta:.2e}"
+                print(f"  reference       {reference:.6f}   {verdict}")
+    return 0
+
+
 def _traced(args: argparse.Namespace):
     """Trace the requested level and report what came out."""
     fractal = library.get(args.name)
@@ -235,6 +310,12 @@ def build_parser() -> argparse.ArgumentParser:
     listing.add_argument("--full", action="store_true",
                          help="print untruncated notes and each system's productions")
     listing.set_defaults(func=_cmd_list)
+
+    growth = sub.add_parser(
+        "growth", help="recover lambda, k and the dimension from the grammar")
+    growth.add_argument("name", nargs="?",
+                        help="catalogue name; omit for the whole table")
+    growth.set_defaults(func=_cmd_growth)
 
     draw = sub.add_parser("draw", help="trace a catalogued system and render it")
     _add_common(draw)

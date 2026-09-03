@@ -187,9 +187,60 @@ def bounds(segments: np.ndarray) -> tuple[float, float, float, float]:
 def diameter(segments: np.ndarray) -> float:
     """Diagonal of the bounding box.
 
-    Used as a cheap, monotone stand-in for the true diameter.  Step 2 takes
-    ratios of this across successive levels to recover the geometric scaling
-    factor ``k``, where only the growth rate matters, not the constant.
+    A cheap stand-in for the size of a figure, and what the CLI reports.  It is
+    not rotation invariant, so it is the wrong tool for measuring how a figure
+    grows -- see :func:`fractaldim.geometry.diameter`, which the scaling-factor
+    measurement uses instead.
     """
     xmin, ymin, xmax, ymax = bounds(segments)
     return math.hypot(xmax - xmin, ymax - ymin)
+
+
+def endpoint(
+    symbols: Iterable[str],
+    *,
+    angle: float = 90.0,
+    step: float = 1.0,
+    start: tuple[float, float] = (0.0, 0.0),
+    start_heading: float = 0.0,
+    commands: Mapping[str, Command] | None = None,
+) -> tuple[float, float]:
+    """Where the turtle finishes after reading ``symbols``.
+
+    Unlike :func:`walk` this reports position rather than segments, so undrawn
+    moves count: the Cantor production ``FfF`` finishes three units along even
+    though it draws only two.  The net displacement of a production is what
+    gives the geometric scaling factor ``k`` exactly, with no limit to take.
+    """
+    table = dict(DEFAULT_COMMANDS)
+    if commands:
+        table.update(commands)
+    directions = _Directions(angle, start_heading)
+
+    x, y = start
+    turn = 0
+    stack: list[tuple[float, float, int]] = []
+
+    for symbol in symbols:
+        command = table.get(symbol, Command.NOP)
+        if command is Command.DRAW or command is Command.MOVE:
+            dx, dy = directions[turn]
+            x, y = x + step * dx, y + step * dy
+        elif command is Command.LEFT:
+            turn += 1
+        elif command is Command.RIGHT:
+            turn -= 1
+        elif command is Command.REVERSE:
+            if directions.period is None or directions.period % 2:
+                raise ValueError(
+                    f"'|' needs a turning angle dividing 180 degrees, got {angle:g}"
+                )
+            turn += directions.period // 2
+        elif command is Command.PUSH:
+            stack.append((x, y, turn))
+        elif command is Command.POP:
+            if not stack:
+                raise ValueError("']' with no matching '['")
+            x, y, turn = stack.pop()
+
+    return (x, y)

@@ -43,9 +43,14 @@ Without activating, spell out the interpreter: `.venv/bin/python -m fractaldim .
 Tests: `.venv/bin/python -m pytest`
 
 ## commands
-There are 3 top level commands: `list`, `draw`, and `animate`.
+There are 4 top level commands: `list`, `growth`, `draw`, and `animate`.
 Each of these has further options including resolution and fps.
 
+
+`growth` recovers the dimension from the grammar itself -- the substitution
+matrix, the growth rate of the drawn symbols, and the scaling factor -- so
+`python3 -m fractaldim growth` prints the write-up's Table 1 as computed
+output. Give it a name for the workings.
 
 You can also change the generation of an L-system using `-n` for iterations.
 
