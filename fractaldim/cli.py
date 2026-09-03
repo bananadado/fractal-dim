@@ -8,6 +8,8 @@ import shutil
 import subprocess
 import sys
 
+import numpy as np
+
 from . import library
 from .plotting import DEFAULT_DPI, DEFAULT_SIZE
 from .turtle import bounds, diameter, trace
@@ -149,6 +151,75 @@ def _cmd_growth(args: argparse.Namespace) -> int:
                 delta = abs(dimension - reference)
                 verdict = "matches" if delta < 1e-6 else f"differs by {delta:.2e}"
                 print(f"  reference       {reference:.6f}   {verdict}")
+    return 0
+
+
+def _cmd_boxcount(args: argparse.Namespace) -> int:
+    import matplotlib
+
+    matplotlib.use("Agg")
+
+    fractal, segments = _traced(args)
+    from .estimate import estimate
+
+    result = estimate(segments, step=args.step, offsets=args.offsets)
+    reference = fractal.dimension
+
+    print(f"\n{'eps':>12s} {'N(eps)':>10s} {'slope':>8s}   window")
+    for index, (eps, count) in enumerate(zip(result.eps, result.counts)):
+        slope = (f"{result.slopes[index]:8.4f}"
+                 if index < len(result.slopes) else " " * 8)
+        mark = "  *" if result.used[index] else ""
+        print(f"{eps:12.5f} {count:10d} {slope}{mark}")
+
+    low, high = result.window
+    plateau_low, plateau_high = result.plateau
+    print(f"\nwindow          {low:g} <= eps <= {high:g}  "
+          f"({result.points} points marked *)")
+    print(f"local slopes    {plateau_low:.4f} to {plateau_high:.4f} inside it")
+    print(f"dimension       {result.dimension:.4f} +- {result.stderr:.4f} (fit)")
+    if reference is not None:
+        print(f"exact           {reference:.4f}   "
+              f"error {result.dimension - reference:+.4f}")
+    if args.offsets > 1:
+        totals = result.offset_spread.sum(axis=1)
+        print(f"grid placement  {args.offsets} offsets, total counts vary by "
+              f"{100 * (totals.max() - totals.min()) / totals.min():.1f}%")
+
+    if args.output or args.open:
+        from .plotting import plot_boxcount, plot_grid_series
+        import matplotlib.pyplot as plt
+
+        path = _output_path(args, fractal, "-boxcount.png")
+        figure = plot_boxcount(
+            result, reference=reference, size=args.size,
+            background=args.background,
+            title=None if args.no_title else f"{fractal.name}, level {args.level}",
+        )
+        figure.savefig(path, dpi=args.dpi, bbox_inches="tight",
+                       facecolor=args.background)
+        plt.close(figure)
+        _deliver(path, args.open)
+
+        if args.grids:
+            # Spread the panels across the whole window rather than taking
+            # the finest four, where the boxes are too small to see.
+            inside = result.eps[result.used]
+            picks = np.unique(np.linspace(0, len(inside) - 1, 4).astype(int))
+            chosen = inside[picks]
+            grid_path = _output_path(args, fractal, "-grids.png")
+            if args.output:
+                grid_path = _ensure_parent(
+                    args.output.replace(".png", "-grids.png"))
+            figure = plot_grid_series(
+                segments, chosen, size=args.size, background=args.background,
+                title=None if args.no_title else
+                f"{fractal.name} level {args.level}: boxes occupied at four scales",
+            )
+            figure.savefig(grid_path, dpi=args.dpi, bbox_inches="tight",
+                           facecolor=args.background)
+            plt.close(figure)
+            _deliver(grid_path, args.open)
     return 0
 
 
@@ -316,6 +387,17 @@ def build_parser() -> argparse.ArgumentParser:
     growth.add_argument("name", nargs="?",
                         help="catalogue name; omit for the whole table")
     growth.set_defaults(func=_cmd_growth)
+
+    boxcount = sub.add_parser(
+        "boxcount", help="estimate the dimension by counting boxes")
+    _add_common(boxcount)
+    boxcount.add_argument("--dpi", type=int, default=DEFAULT_DPI,
+                          help=f"dots per inch (default: {DEFAULT_DPI})")
+    boxcount.add_argument("--offsets", type=int, default=4,
+                          help="grid placements to try (default: 4)")
+    boxcount.add_argument("--grids", action="store_true",
+                          help="also draw the occupied boxes at four scales")
+    boxcount.set_defaults(func=_cmd_boxcount)
 
     draw = sub.add_parser("draw", help="trace a catalogued system and render it")
     _add_common(draw)

@@ -174,3 +174,130 @@ def animate_segments(
     animation.save(str(path), writer=PillowWriter(fps=fps), dpi=dpi,
                    savefig_kwargs={"facecolor": background})
     plt.close(figure)
+
+
+def plot_boxcount(result, *, reference: float | None = None, size: float = DEFAULT_SIZE,
+                  background: str = "white", title: str | None = None):
+    """Two panels: the log-log counts, and the local slope that justifies them.
+
+    The second panel is the one that matters.  A fitted line through box counts
+    always produces a number; only a plateau in the local slope says that the
+    number is a dimension rather than an average of two roll-offs.
+    """
+    import matplotlib.pyplot as plt
+
+    figure, (top, bottom) = plt.subplots(
+        2, 1, figsize=(size, size * 0.9), sharex=True,
+        gridspec_kw={"height_ratios": [2, 1]},
+    )
+    figure.patch.set_facecolor(background)
+
+    low, high = result.window
+    used = result.used
+    for axes in (top, bottom):
+        axes.set_facecolor(background)
+        axes.axvspan(low, high, color="0.92", zorder=0)
+        axes.set_xscale("log")
+
+    top.plot(result.eps[~used], result.counts[~used], "o", ms=4.5,
+             mfc="none", color="0.55", label="outside the window")
+    top.plot(result.eps[used], result.counts[used], "o", ms=5,
+             color="#2b6cb0", label="fitted")
+    line = np.exp(result.intercept) * result.eps ** (-result.dimension)
+    top.plot(result.eps, line, "-", lw=1.2, color="#c53030",
+             label=f"slope {result.dimension:.4f}")
+    top.set_yscale("log")
+    top.set_ylabel("N(eps)")
+    top.legend(frameon=False, fontsize=9)
+    if title:
+        top.set_title(title, fontsize=11)
+
+    bottom.plot(result.slope_centres, result.slopes, "o-", ms=4, lw=1.0,
+                color="#2b6cb0")
+    bottom.axhline(result.dimension, color="#c53030", lw=1.2,
+                   label=f"fit {result.dimension:.4f}")
+    if reference is not None:
+        bottom.axhline(reference, color="#2f855a", lw=1.2, ls="--",
+                       label=f"exact {reference:.4f}")
+    bottom.axhline(1.0, color="0.6", lw=0.8, ls=":")
+    bottom.set_ylabel("local slope")
+    bottom.set_xlabel("box size eps")
+    bottom.legend(frameon=False, fontsize=9)
+
+    figure.tight_layout()
+    return figure
+
+
+def plot_grid(segments: np.ndarray, eps: float, *, origin=(0.0, 0.0),
+              size: float = DEFAULT_SIZE, background: str = "white",
+              ax=None, title: str | None = None, show_lines: bool = True):
+    """The curve with every occupied box shaded: box counting, drawn.
+
+    This is the picture the log-log plot is an abstraction of -- one point on
+    that plot is one of these grids, and its N is the number of shaded cells.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.collections import LineCollection, PatchCollection
+    from matplotlib.patches import Rectangle
+
+    from .boxcount import occupied_cells
+
+    if ax is None:
+        _, ax = plt.subplots(figsize=(size, size))
+
+    cells = occupied_cells(segments, eps, origin)
+    boxes = [
+        Rectangle((origin[0] + i * eps, origin[1] + j * eps), eps, eps)
+        for i, j in cells
+    ]
+    ax.add_collection(PatchCollection(
+        boxes, facecolor="#90cdf4", edgecolor="#2b6cb0",
+        linewidth=0.3 if show_lines else 0.0, alpha=0.55, zorder=1,
+    ))
+    ax.add_collection(LineCollection(
+        segments, colors="#1a202c",
+        linewidths=_linewidth_for(len(segments), 1.4), zorder=2,
+    ))
+    label = title if title is not None else f"eps = {eps:g},  N = {len(cells)}"
+    return _frame_axes(segments, ax, background, label)
+
+
+def plot_grid_series(segments: np.ndarray, sizes, *, size: float = DEFAULT_SIZE,
+                     background: str = "white", title: str | None = None):
+    """A panel per box size, laid out to suit the curve's own proportions.
+
+    A wide, short curve like Koch's wants its panels stacked; a square one like
+    Hilbert's wants a grid.  Choosing by aspect ratio keeps the drawn figure
+    filling its panel instead of floating in whitespace.
+    """
+    import matplotlib.pyplot as plt
+
+    sizes = list(sizes)
+    points = segments.reshape(-1, 2)
+    extent = points.max(axis=0) - points.min(axis=0)
+    aspect = float(extent[1] / extent[0]) if extent[0] > 0 else 1.0
+
+    if aspect < 0.5:            # wide and short: stack them
+        rows, columns = len(sizes), 1
+    elif aspect > 2.0:          # tall and narrow: lay them out in a row
+        rows, columns = 1, len(sizes)
+    else:
+        columns = 1 if len(sizes) == 1 else 2
+        rows = int(np.ceil(len(sizes) / columns))
+
+    panel = size / columns
+    figure, axes = plt.subplots(
+        rows, columns,
+        figsize=(size, max(1.2, panel * np.clip(aspect, 0.25, 3.0)) * rows + 0.3),
+        squeeze=False,
+    )
+    figure.patch.set_facecolor(background)
+    flat = axes.ravel()
+    for eps, axis in zip(sizes, flat):
+        plot_grid(segments, eps, ax=axis, background=background)
+    for spare in flat[len(sizes):]:
+        spare.axis("off")
+    if title:
+        figure.suptitle(title, fontsize=11)
+    figure.tight_layout(rect=(0, 0, 1, 0.97 if title else 1))
+    return figure
