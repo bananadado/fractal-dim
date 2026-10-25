@@ -130,13 +130,25 @@ def test_validation_family_dimensions_are_reproduced(name):
     assert result.dimension == pytest.approx(fractal.dimension, abs=1e-9)
 
 
-def test_dragon_dimension_is_close_but_only_measured():
-    """The one entry with no exact route and slow convergence; 0.2% is what
-    the diameter ratio achieves at the deepest affordable level."""
+def test_dragon_k_is_exact_from_the_displacement():
+    """No exact route, but the measurement is still exact.  The dragon's
+    endpoints are carried by the similarity, so its net displacement is a pure
+    geometric sequence and differencing returns sqrt(2) outright -- where a
+    differenced *diameter* is out by 8e-4 even at level 18."""
     fractal = library.get("dragon")
     result = analyse(fractal.system, fractal.commands, fractal.start_heading)
     assert result.k_method == "measured"
-    assert result.dimension == pytest.approx(2.0, rel=2e-3)
+    assert result.k == pytest.approx(math.sqrt(2), abs=1e-9)
+    assert result.dimension == pytest.approx(2.0, abs=1e-9)
+
+
+def test_a_closed_axiom_falls_back_to_the_diameter():
+    """The snowflake returns to where it started, so its displacement is zero
+    at every level and only the diameter is left to measure."""
+    fractal = library.get("koch_snowflake")
+    k, _ = scaling_factor_measured(fractal.system, fractal.commands,
+                                   fractal.start_heading)
+    assert k == pytest.approx(3.0, abs=1e-6)
 
 
 def test_branching_systems_report_no_dimension():

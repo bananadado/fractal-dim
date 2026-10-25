@@ -99,3 +99,27 @@ def test_apng_output_keeps_frame_timing(tmp_path, koch):
         image.seek(index)
         durations.append(image.info["duration"])
     assert durations[-1] > durations[0]
+
+
+def test_rolloff_panels_cover_only_the_fitted_scales(tmp_path):
+    """Past the coarse end of the fits the counts are a handful of boxes, so
+    both panels stop there rather than stretching the axis over noise."""
+    from fractaldim.plotting import plot_rolloff
+    from fractaldim.rolloff import sweep_levels
+
+    sweeps = sweep_levels(library.get("koch"), [4, 5], below_step=8)
+    figure = plot_rolloff(sweeps, size=4.0, title=None)
+    top, bottom = figure.axes
+    right = max(s.top / s.step for s in sweeps)
+    assert top.get_xlim() == bottom.get_xlim()
+    assert right < top.get_xlim()[1] < right * 2
+    figure.savefig(tmp_path / "rolloff.png", dpi=50)
+
+
+def test_rolloff_needs_a_reference_to_measure_error_against():
+    from fractaldim.plotting import plot_rolloff
+    from fractaldim.rolloff import sweep
+
+    segments = trace(library.get("koch").system, 4)
+    with pytest.raises(ValueError, match="reference dimension"):
+        plot_rolloff([sweep(segments, level=4, below_step=8)])

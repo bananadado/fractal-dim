@@ -12,6 +12,7 @@ import numpy as np
 
 from . import library
 from .plotting import DEFAULT_DPI, DEFAULT_SIZE
+from .rolloff import BELOW_STEP
 from .turtle import bounds, diameter, trace
 
 #: Renders land here when -o is not given. Gitignored, so the directory is
@@ -154,6 +155,57 @@ def _cmd_growth(args: argparse.Namespace) -> int:
     return 0
 
 
+#: Tolerance for the settling test: the precision being asked of the estimate,
+#: not a fitted constant.  A move smaller than the placement spread cannot be
+#: attributed to the level rather than the grid, so the test takes the larger
+#: of the two.
+SETTLE_TOLERANCE = 0.005
+
+
+def _print_settling(args, fractal, deepest) -> None:
+    """Refit two shallower levels and say whether the estimate has stopped.
+
+    One-sided: a system that fails this is certainly not converged, but one
+    that passes may still be well off, since whatever error does not move with
+    level is invisible here.
+    """
+    from .estimate import estimate
+
+    # One octave of scaling per step, so a k below 2 needs levels two apart.
+    stride = 1 if (fractal.k or 2.0) >= 2.0 else 2
+    levels = [args.level - 2 * stride, args.level - stride]
+    if levels[0] < 1:
+        print("settling        needs two shallower levels; -n is too small")
+        return
+
+    dimensions = []
+    for level in levels:
+        segments = trace(
+            fractal.system, level, step=args.step,
+            commands=fractal.commands,
+            start_heading=args.heading if args.heading is not None
+            else fractal.start_heading,
+        )
+        dimensions.append(estimate(segments, step=args.step,
+                                   offsets=args.offsets).dimension)
+    dimensions.append(deepest.dimension)
+
+    first = abs(dimensions[1] - dimensions[0])
+    last = abs(dimensions[2] - dimensions[1])
+    spread = deepest.placement_spread
+    if last > max(SETTLE_TOLERANCE, spread):
+        verdict = "STILL MOVING"
+    elif last <= SETTLE_TOLERANCE:
+        verdict = "settled"
+    else:
+        verdict = "indeterminate (move is inside the placement spread)"
+    print(f"settling        levels {levels[0]}/{levels[1]}/{args.level}: "
+          f"{dimensions[0]:.4f} {dimensions[1]:.4f} {dimensions[2]:.4f}")
+    print(f"                moves {first:.4f} then {last:.4f} "
+          f"vs max(tol {SETTLE_TOLERANCE:g}, placement {spread:.4f})"
+          f"  -> {verdict}")
+
+
 def _cmd_boxcount(args: argparse.Namespace) -> int:
     import matplotlib
 
@@ -174,17 +226,30 @@ def _cmd_boxcount(args: argparse.Namespace) -> int:
 
     low, high = result.window
     plateau_low, plateau_high = result.plateau
-    print(f"\nwindow          {low:g} <= eps <= {high:g}  "
-          f"({result.points} points marked *)")
-    print(f"local slopes    {plateau_low:.4f} to {plateau_high:.4f} inside it")
-    print(f"dimension       {result.dimension:.4f} +- {result.stderr:.4f} (fit)")
+    print(f"\ndimension       {result.dimension:.4f}")
     if reference is not None:
         print(f"exact           {reference:.4f}   "
               f"error {result.dimension - reference:+.4f}")
+
+    # Ordered by how much each one is worth, which is not the order a reader
+    # would guess: the settling test first, grid placement next, the window
+    # after that, and the plateau last.  See the write-up's section 9.7.3.
+    if args.settle:
+        _print_settling(args, fractal, result)
+    else:
+        print("settling        not run (--settle fits two shallower levels "
+              "and reports whether the estimate has stopped moving)")
     if args.offsets > 1:
-        totals = result.offset_spread.sum(axis=1)
-        print(f"grid placement  {args.offsets} offsets, total counts vary by "
-              f"{100 * (totals.max() - totals.min()) / totals.min():.1f}%")
+        span_low, span_high = result.placement
+        print(f"grid placement  {span_low:.4f} to {span_high:.4f} over "
+              f"{args.offsets} placements (spread "
+              f"{result.placement_spread:.4f})")
+    print(f"window          {low:g} <= eps <= {high:g}  "
+          f"({result.points} points marked *)")
+    print(f"local slopes    {plateau_low:.4f} to {plateau_high:.4f} inside it "
+          f"(curvature only; blind to uniform bias)")
+    print(f"fit stderr      {result.stderr:.4f}   assumes independent noise, "
+          f"which this is not")
 
     if args.output or args.open:
         from .plotting import plot_boxcount, plot_grid_series
@@ -220,6 +285,83 @@ def _cmd_boxcount(args: argparse.Namespace) -> int:
                            facecolor=args.background)
             plt.close(figure)
             _deliver(grid_path, args.open)
+    return 0
+
+
+def _levels_for(args: argparse.Namespace) -> list[int]:
+    """Levels to sweep: the ones asked for, or a short run up to ``--level``."""
+    if args.levels:
+        try:
+            levels = sorted({int(part) for part in args.levels.split(",")})
+        except ValueError:
+            raise ValueError(f"--levels wants a comma-separated list of "
+                             f"integers, got {args.levels!r}") from None
+        if any(level < 1 for level in levels):
+            raise ValueError("levels must be at least 1")
+        return levels
+    return [level for level in range(args.level - 2, args.level + 1) if level >= 1]
+
+
+def _cmd_rolloff(args: argparse.Namespace) -> int:
+    import matplotlib
+
+    matplotlib.use("Agg")
+
+    from .rolloff import sweep_levels
+
+    fractal = library.get(args.name)
+    if fractal.dimension is None:
+        raise ValueError(
+            f"{args.name} has no exact dimension to measure error against; "
+            "the roll-off is a comparison against ground truth, so pick one "
+            "of the validation family"
+        )
+
+    levels = _levels_for(args)
+    print(f"{fractal.name}: exact dimension {fractal.dimension:.6f}, "
+          f"counting {args.below_step}x below the step length")
+    sweeps = sweep_levels(
+        fractal, levels, step=args.step, offsets=args.offsets,
+        below_step=args.below_step,
+    )
+
+    for result in sweeps:
+        best = result.best
+        print(f"\nlevel {result.level}: {len(result.eps)} scales, "
+              f"span {result.span:.1f}, fits end at eps = {result.top:g}")
+        print(f"{'eps/step':>10s} {'points':>7s} {'dimension':>10s} {'error':>9s}")
+        for index, cutoff in enumerate(result.cutoffs):
+            mark = "  <- best" if index == best else ""
+            print(f"{cutoff / result.step:10.4f} {result.used[index]:7d} "
+                  f"{result.dimensions[index]:10.4f} "
+                  f"{result.errors[index]:+9.4f}{mark}")
+        # The headline: counting as fine as possible is worse than stopping at
+        # the floor of the V, and by how much is the whole argument.
+        finest, floor = result.errors[0], result.errors[best]
+        # A dyadic curve can land exactly on its dimension, and a ratio against
+        # a floor that is really zero says nothing.
+        penalty = (f", {abs(finest / floor):.1f}x the error at the floor"
+                   if abs(floor) > 1e-6 else "")
+        print(f"  counting to the finest box costs {finest:+.4f}{penalty}")
+
+    if not args.no_plot:
+        from .plotting import plot_rolloff
+        import matplotlib.pyplot as plt
+
+        # The sweep spans several levels, so the default filename is named
+        # for the deepest one rather than for whatever -n happened to be.
+        args.level = levels[-1]
+        path = _output_path(args, fractal, "-rolloff.png")
+        figure = plot_rolloff(
+            sweeps, size=args.size, background=args.background,
+            title=None if args.no_title else
+            f"{fractal.name}: the cost of counting finer, levels "
+            f"{levels[0]}-{levels[-1]}",
+        )
+        figure.savefig(path, dpi=args.dpi, bbox_inches="tight",
+                       facecolor=args.background)
+        plt.close(figure)
+        _deliver(path, args.open)
     return 0
 
 
@@ -395,9 +537,34 @@ def build_parser() -> argparse.ArgumentParser:
                           help=f"dots per inch (default: {DEFAULT_DPI})")
     boxcount.add_argument("--offsets", type=int, default=4,
                           help="grid placements to try (default: 4)")
+    boxcount.add_argument("--settle", action="store_true",
+                          help="also fit the two levels below and report "
+                               "whether the estimate has stopped moving; this "
+                               "is the single most informative check and costs "
+                               "under 0.75x extra")
     boxcount.add_argument("--grids", action="store_true",
                           help="also draw the occupied boxes at four scales")
     boxcount.set_defaults(func=_cmd_boxcount)
+
+    rolloff = sub.add_parser(
+        "rolloff",
+        help="show how the estimate degrades as finer boxes enter the fit")
+    _add_common(rolloff)
+    rolloff.add_argument("--dpi", type=int, default=DEFAULT_DPI,
+                         help=f"dots per inch (default: {DEFAULT_DPI})")
+    rolloff.add_argument("--offsets", type=int, default=4,
+                         help="grid placements to try (default: 4)")
+    rolloff.add_argument("--levels",
+                         help="comma-separated levels to sweep, e.g. 5,6,7; "
+                              "defaults to the three ending at --level")
+    rolloff.add_argument("--below-step", type=int, default=BELOW_STEP,
+                         help="how far below the step length to count, as a "
+                              f"divisor (default: {BELOW_STEP}); the cost is "
+                              "linear in this and so is the length of the "
+                              "left arm")
+    rolloff.add_argument("--no-plot", action="store_true",
+                         help="print the table only")
+    rolloff.set_defaults(func=_cmd_rolloff)
 
     draw = sub.add_parser("draw", help="trace a catalogued system and render it")
     _add_common(draw)

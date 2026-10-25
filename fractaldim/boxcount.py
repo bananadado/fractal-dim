@@ -146,26 +146,54 @@ def count_over_offsets(
     finest: float,
     scales: int,
     offsets: int = 1,
+    seed: int = 0,
 ) -> tuple[BoxCount, np.ndarray]:
     """Repeat the count with the grid shifted, and report the spread.
 
     Where the grid falls is arbitrary but the count is not, so a single
     placement carries a systematic error that no amount of averaging over
-    scales removes.  Returns the counts at the tightest placement together with
-    the full ``(offsets, scales)`` table behind them.
+    scales removes.  Returns the counts on the unshifted grid together with the
+    full ``(offsets, scales)`` table behind them.
+
+    Two details decide whether this measures anything.
+
+    **How far to shift.**  One origin shifts the whole nested ladder at once,
+    and a grid of side ``eps`` only sees the origin modulo ``eps``.  Shifting
+    by a fraction of the *finest* box therefore leaves the coarse rungs almost
+    where they were -- under one percent of a cell, at the scales the fit
+    actually uses -- so the check reports stability it has not tested.  Drawing
+    the shift uniformly from ``[0, coarsest)`` instead gives every rung a
+    uniform phase at once, for the same one traversal per placement.  The draws
+    have to be genuinely uniform: evenly spaced fractions of the coarsest box
+    are integer multiples of most of the dyadic rungs, so the phase comes out
+    identically zero there and an axis-aligned lattice curve reports no
+    sensitivity whatever.  The unshifted grid is kept as the first placement,
+    since it is a legitimate one and is the tightest for a curve that tiles.
+
+    **Which placement to report.**  Not the tightest.  Minimising over randomly
+    drawn placements is a sample minimum: it drifts downwards as ``offsets``
+    grows and it moves by up to 0.07 in the fitted dimension between seeds, so
+    the headline number would depend on two arbitrary knobs.  The unshifted
+    grid is reported instead, on the single ground that it is the one
+    deterministic placement available.  It is not canonical: the box dimension
+    has no origin, only N(eps) at finite eps does, and anchoring at the origin
+    systematically favours curves that sit on that lattice -- which is why
+    Hilbert reads exactly 2.  A mean over the drawn placements would remove
+    that bias and is also deterministic given a seed, at the cost of its own
+    seed-to-seed variation; at four placements neither is clearly better.  The
+    drawn placements are kept for the spread they measure, which is an
+    uncertainty on the answer rather than something the answer was optimised
+    against.
     """
     if offsets < 1:
         raise ValueError("offsets must be at least 1")
 
-    table = []
-    results = []
-    for index in range(offsets):
-        fraction = index / offsets
-        shift = (fraction * finest, fraction * finest)
-        result = count(segments, finest=finest, scales=scales, origin=shift)
-        results.append(result)
-        table.append(result.counts)
+    coarsest = finest * (1 << (scales - 1))
+    generator = np.random.default_rng(seed)
+    shifts = [(0.0, 0.0)] + [
+        tuple(generator.uniform(0.0, coarsest, 2)) for _ in range(offsets - 1)
+    ]
 
-    stacked = np.array(table)
-    best = int(stacked.sum(axis=1).argmin())
-    return results[best], stacked
+    table = [count(segments, finest=finest, scales=scales, origin=shift)
+             for shift in shifts]
+    return table[0], np.array([result.counts for result in table])

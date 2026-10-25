@@ -80,6 +80,18 @@ class Estimate:
     offset_spread: np.ndarray   # counts at every grid placement tried
     slope_centres: np.ndarray
     slopes: np.ndarray
+    placement: tuple[float, float]   # fitted dimension at the loosest/tightest placement
+
+    @property
+    def placement_spread(self) -> float:
+        """How far the answer moves when the grid is put somewhere else.
+
+        The count spread is the wrong thing to quote -- it is dominated by the
+        finest rung, which the fit discards.  This refits the window at every
+        placement and reports the range, which on these figures runs to 0.07
+        and is routinely larger than the error being claimed.
+        """
+        return self.placement[1] - self.placement[0]
 
     @property
     def points(self) -> int:
@@ -138,12 +150,15 @@ def estimate(
     finest = step / below_step
     scales = max(2, int(math.ceil(math.log2(span / finest))) + 1)
 
+    # The window depends only on the step and the span, so it is known before
+    # any counting -- which lets the grid placement be chosen on the rungs the
+    # fit will actually use.
+    low, high = scaling_window(step, span) if window is None else window
     counted, spread = count_over_offsets(
         segments, finest=finest, scales=scales, offsets=offsets
     )
     eps, counts = counted.eps, counted.counts
 
-    low, high = scaling_window(step, span) if window is None else window
     used = (eps >= low * (1 - 1e-9)) & (eps <= high * (1 + 1e-9))
     if used.sum() < 2:
         # Too shallow a curve for a window; fall back to everything above the
@@ -162,9 +177,16 @@ def estimate(
     spread_x = float(((x - x.mean()) ** 2).sum())
     stderr = math.sqrt(variance / spread_x) if spread_x > 0 else math.nan
 
+    # Refit the window at every placement: the spread of *those* is the
+    # placement uncertainty, and it is not what the spread of counts says.
+    fitted = []
+    for placement in spread:
+        fitted.append(float(np.polyfit(x, np.log(placement[used]), 1)[0]))
+
     centres, slopes = local_slopes(eps, counts)
     return Estimate(
         eps=eps, counts=counts, window=(low, high), used=used,
         dimension=float(slope), stderr=stderr, intercept=float(intercept),
         offset_spread=spread, slope_centres=centres, slopes=slopes,
+        placement=(min(fitted), max(fitted)),
     )

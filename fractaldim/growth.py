@@ -23,6 +23,14 @@ the Hilbert and dragon systems, there is no such word and k has to be measured
 from the drawn figure instead.  Both are implemented, and where both apply they
 are expected to agree; that agreement is the check that the algebra describes
 the picture.
+
+What the measured route measures matters more than it looks.  The obvious size
+is the figure's diameter, and it is the wrong one: for a curve that turns as it
+grows the diameter carries an oscillating correction, and the dragon comes out
+at 1.4134 against sqrt(2) however deep it is taken.  The net displacement of
+the drawn figure carries either no correction or a constant one, so
+differencing it returns k to machine precision in every case here.  See
+:func:`scaling_factor_measured`.
 """
 
 from __future__ import annotations
@@ -251,6 +259,19 @@ def deepest_levels(
     return affordable[-count:]
 
 
+def _ratio_of_differences(sizes: Sequence[float]) -> float | None:
+    """``k`` from three successive sizes, with any additive offset cancelled.
+
+    If ``s_n = C k^n + A + o(1)`` then differencing removes ``A`` outright and
+    the ratio of successive differences is ``k`` in the limit.  For a pure
+    geometric sequence (``A = 0``) it is ``k`` exactly, at every level.
+    """
+    denominator = sizes[-2] - sizes[-3]
+    if abs(denominator) < 1e-12:
+        return None
+    return (sizes[-1] - sizes[-2]) / denominator
+
+
 def scaling_factor_measured(
     system: LSystem,
     commands: Mapping[str, Command] | None = None,
@@ -259,25 +280,38 @@ def scaling_factor_measured(
 ) -> tuple[float | None, int]:
     """``k`` measured from the drawn figure, with the deepest level used.
 
-    Uses the true diameter rather than the bounding box, because the box is not
-    rotation invariant and the dragon turns as it grows.  Then takes the ratio
-    of successive *differences* rather than of the diameters themselves: the
-    Hilbert figure spans ``2^n - 1``, and differencing cancels that additive
-    ``-1`` identically instead of waiting for it to decay.
+    Two sizes are available and they fail in different places, so both are
+    computed and the better-behaved one is preferred.
+
+    The **net displacement** of the drawn figure -- first point to last -- is
+    the right one almost always.  Where the curve's endpoints are carried by
+    the similarity it is exactly ``C k^n``, so differencing returns ``k`` to
+    machine precision at every level: the dragon and the Levy C curve both read
+    their ``sqrt(2)`` exactly, where a diameter ratio wanders by a percent.
+    Where the figure is a lattice curve it is ``C k^n + A`` -- Hilbert's is
+    ``2^n - 1`` -- and differencing cancels the ``A`` identically.
+
+    It degenerates only when the axiom closes, as the Koch snowflake's does:
+    the turtle returns to where it started and the displacement is zero at
+    every level.  There the **diameter** is the only size left.  It is used in
+    preference to the bounding box because the box is not rotation invariant
+    and the dragon turns as it grows, but it carries a correction that is not
+    always a constant, so it is the fallback rather than the default.
     """
     levels = deepest_levels(system, commands, budget)
     if len(levels) < 3:
         return None, max(levels, default=0)
 
-    sizes = [
-        diameter(trace(system, level, commands=commands,
-                       start_heading=start_heading))
+    figures = [
+        trace(system, level, commands=commands, start_heading=start_heading)
         for level in levels
     ]
-    denominator = sizes[-2] - sizes[-3]
-    if abs(denominator) < 1e-12:
-        return None, levels[-1]
-    return (sizes[-1] - sizes[-2]) / denominator, levels[-1]
+    spans = [float(np.hypot(*(f[-1, 1] - f[0, 0]))) for f in figures]
+    if min(spans) > 1e-12:
+        measured = _ratio_of_differences(spans)
+        if measured is not None:
+            return measured, levels[-1]
+    return _ratio_of_differences([diameter(f) for f in figures]), levels[-1]
 
 
 @dataclass(frozen=True)
