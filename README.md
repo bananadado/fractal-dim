@@ -6,6 +6,7 @@ Writeup by ME, implementation is written with heavy AI assistance to my design.
 # writeup
 This is just some findings which I thought were interesting as well as a not-so-shallow dive into the actual maths behind it which is pretty interesting.
 Actually took me forever to get my head round the Lebesgue measure theory.
+https://github.com/bananadado/fractal-dim/blob/main/writeup/main.pdf
 
 The first part of the project drawing L-systems is loosely based on a year 1 haskell homework I did as part of my course. The rest just expands on it.
 
