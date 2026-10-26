@@ -15,11 +15,11 @@ The first part of the project drawing L-systems is loosely based on a year 1 has
 
 # what it shows
 
-![The error of the fit against the smallest box let into it, for the Koch curve at levels 5 to 7](images/koch-rolloff.png)
+<img src="images/koch-rolloff.png" alt="Error on Koch levels 5-7" width="720">
 
 *Letting finer boxes into the fit makes the estimate **worse**, and the floor of the V sits a few step lengths above the drawn resolution*
 
-![The Koch curve at level 4 with every occupied box shaded, at four box sizes](images/koch-grids.png)
+<img src="images/koch-grids.png" alt="Koch level 4 fitted boxes" width="600"> 
 
 *What `N(eps)` actually counts: every cell the curve enters, at 4 box sizes. The dimension is the slope of those counts against `1/eps`, fitted over a window (see Figure 7).*
 
@@ -35,7 +35,7 @@ python3 -m fractaldim draw plant -n 5 --open
 python3 -m fractaldim animate hilbert -n 4 --open # watch the turtle draw it
 ```
 
-<img src="images/hilbert.gif" alt="The turtle drawing a level 4 Hilbert curve" width="360">
+<img src="images/hilbert.gif" alt="The turtle drawing a level 4 Hilbert curve" width="480">
 
 ## the virtualenv
 
