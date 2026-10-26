@@ -1,4 +1,7 @@
 # fractal-dim
+
+![The Heighway dragon, the Gosper flowsnake, a branching plant and a Hilbert curve, all drawn by the same turtle](images/hero.png)
+
 Box-counting fractal dimension estimator via L-systems.
 
 Writeup by ME, implementation is written with heavy AI assistance to my design.
@@ -9,6 +12,16 @@ Actually took me forever to get my head round the Lebesgue measure theory.
 https://github.com/bananadado/fractal-dim/blob/main/writeup/main.pdf
 
 The first part of the project drawing L-systems is loosely based on a year 1 haskell homework I did as part of my course. The rest just expands on it.
+
+# what it shows
+
+![The error of the fit against the smallest box let into it, for the Koch curve at levels 5 to 7](images/koch-rolloff.png)
+
+*Letting finer boxes into the fit makes the estimate **worse**, and the floor of the V sits a few step lengths above the drawn resolution*
+
+![The Koch curve at level 4 with every occupied box shaded, at four box sizes](images/koch-grids.png)
+
+*What `N(eps)` actually counts: every cell the curve enters, at 4 box sizes. The dimension is the slope of those counts against `1/eps`, fitted over a window (see Figure 7).*
 
 # running the code
 
@@ -21,6 +34,8 @@ python3 -m fractaldim draw hilbert -n 5
 python3 -m fractaldim draw plant -n 5 --open
 python3 -m fractaldim animate hilbert -n 4 --open # watch the turtle draw it
 ```
+
+<img src="images/hilbert.gif" alt="The turtle drawing a level 4 Hilbert curve" width="360">
 
 ## the virtualenv
 
@@ -71,3 +86,12 @@ python3 -m fractaldim rolloff koch --levels 5,6,7 --open
 You can also change the generation of an L-system using `-n` for iterations.
 
 Use `-h` for more information.
+
+## the figures
+
+You can make the figures shown using these tools.
+
+```sh
+python3 tools/make_figures.py            # all of them
+python3 tools/make_figures.py grids hero # just these
+```

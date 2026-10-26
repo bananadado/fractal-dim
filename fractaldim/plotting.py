@@ -82,6 +82,65 @@ def save_segments(segments: np.ndarray, path, *, dpi: int = DEFAULT_DPI, **kwarg
     plt.close(figure)
 
 
+def plot_strip(panels, *, columns: int | None = None, size: float = DEFAULT_SIZE,
+               background: str = "white", title: str | None = None,
+               color: str = "index", cmap: str = "viridis",
+               linewidth_scale: float = 1.0, label_size: float = 10.0,
+               max_aspect: float = 1.8):
+    """Several traced figures laid out together, each framed to its own extent.
+
+    ``panels`` is a sequence of ``(label, segments)`` pairs.  Every cell in a
+    row is the same shape, so a figure that is wider than its neighbours floats
+    in its own whitespace rather than being squashed -- which is what keeps a
+    gallery of unrelated curves comparable.
+
+    ``max_aspect`` caps how tall a row may be against one cell's width.  A
+    single lanky figure -- the plant, which is mostly stem -- would otherwise
+    set the height of its row, and so the height of the whole figure.
+    """
+    import matplotlib.pyplot as plt
+
+    panels = list(panels)
+    if not panels:
+        raise ValueError("nothing to plot: no panels given")
+
+    columns = columns or len(panels)
+    rows = int(np.ceil(len(panels) / columns))
+
+    aspects = []
+    for _, segments in panels:
+        points = segments.reshape(-1, 2)
+        extent = points.max(axis=0) - points.min(axis=0)
+        aspects.append(float(extent[1] / extent[0]) if extent[0] > 0 else 1.0)
+
+    # Each row is only as tall as its own tallest panel.  Sizing every row to
+    # the tallest panel in the whole grid is what leaves a row of wide curves
+    # stranded in the middle of its own whitespace, with the labels floating
+    # above them.
+    cell = size / columns
+    heights = [
+        cell * float(np.clip(max(aspects[start:start + columns]), 0.3, max_aspect))
+        for start in range(0, len(panels), columns)
+    ]
+
+    figure = plt.figure(figsize=(size, sum(heights) + 0.3))
+    figure.patch.set_facecolor(background)
+    grid = figure.add_gridspec(rows, columns, height_ratios=heights)
+    flat = [figure.add_subplot(grid[index // columns, index % columns])
+            for index in range(rows * columns)]
+    for (label, segments), axis in zip(panels, flat):
+        plot_segments(segments, ax=axis, color=color, cmap=cmap,
+                      linewidth_scale=linewidth_scale, background=background)
+        if label:
+            axis.set_title(label, fontsize=label_size)
+    for spare in flat[len(panels):]:
+        spare.axis("off")
+        spare.set_facecolor(background)
+    if title:
+        figure.suptitle(title, fontsize=11)
+    figure.tight_layout(rect=(0, 0, 1, 0.97 if title else 1))
+    return figure
+
 def animate_segments(
     segments: np.ndarray,
     path,
@@ -302,6 +361,58 @@ def plot_grid_series(segments: np.ndarray, sizes, *, size: float = DEFAULT_SIZE,
     figure.tight_layout(rect=(0, 0, 1, 0.97 if title else 1))
     return figure
 
+
+def plot_hull(segments: np.ndarray, *, ax=None, size: float = DEFAULT_SIZE,
+              background: str = "white", title: str | None = None,
+              show_box: bool = True):
+    """The figure with its bounding box, its convex hull and its diameter.
+
+    The picture behind the hull section: the box is what a naive size
+    measurement uses and turns with the figure, the hull is the handful of
+    vertices the diameter can be realised at, and the chord is the diameter
+    itself.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.collections import LineCollection
+
+    from .geometry import convex_hull
+
+    if ax is None:
+        _, ax = plt.subplots(figsize=(size, size))
+
+    points = np.asarray(segments, dtype=np.float64).reshape(-1, 2)
+    hull = convex_hull(points)
+
+    if show_box:
+        lo, hi = points.min(axis=0), points.max(axis=0)
+        ax.add_patch(plt.Rectangle(
+            tuple(lo), *(hi - lo), fill=False, lw=1.0, ls="--",
+            edgecolor=_RULE, zorder=2,
+        ))
+
+    ax.add_collection(LineCollection(
+        segments, colors="#1a202c",
+        linewidths=_linewidth_for(len(segments), 1.2), zorder=3,
+    ))
+
+    closed = np.vstack([hull, hull[:1]])
+    ax.plot(closed[:, 0], closed[:, 1], "-", lw=1.1, color="#2b6cb0", zorder=4)
+    ax.plot(hull[:, 0], hull[:, 1], "o", ms=4.0, mfc=background,
+            mec="#2b6cb0", mew=1.2, zorder=5)
+
+    # Only hull vertices can realise the diameter (Lemma 9.1), and there are
+    # never many of them, so the pair is found by looking at all of them.
+    delta = hull[:, None, :] - hull[None, :, :]
+    distances = np.sqrt((delta ** 2).sum(-1))
+    i, j = np.unravel_index(int(distances.argmax()), distances.shape)
+    ax.plot(hull[[i, j], 0], hull[[i, j], 1], lw=1.2, ls="--",
+            color="#c53030", zorder=6)
+    ax.plot(hull[[i, j], 0], hull[[i, j], 1], "o", ms=4.5, color="#c53030",
+            zorder=7)
+
+    label = (title if title is not None
+             else f"diameter {distances[i, j]:.2f},  {len(hull)} hull vertices")
+    return _frame_axes(segments, ax, background, label)
 
 #: Blue ordinal ramp, light to dark, for series keyed by L-system level.  Level
 #: is an ordered quantity, so it takes a single-hue ramp rather than

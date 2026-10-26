@@ -338,7 +338,7 @@ For a uniform IFS ($\forall i,\; r_i=r\in (0,1)$), the Moran equation gives $Nr^
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.5\textwidth]{images/Sierpinski_triangle.svg.png}
-    \caption{Serpi\'{n}ski triangle. \cite{img:sierpinski}}
+    \caption{Sierpi\'{n}ski triangle. \cite{img:sierpinski}}
     \label{fig:sierpinski}
 \end{figure}
 \newpage
@@ -513,7 +513,7 @@ Hilbert & see \ref{ex:hilbert}
     & $90^\circ$ & $4/2$ & $2$ \\
 \hline
 \end{tabular}
-\caption{L-systems with exactly known dimension, used in \S9.}
+\caption{L-systems with exactly known dimension, used in \S9 (see Appendix~\ref{sec:gallery}).}
 \label{tab:lsystems}
 \end{table}
 
@@ -662,7 +662,17 @@ So how do we measure the ``size''?
 
 The intuitive answer is to use the bounding box: take $\max x-\min x$ and$\max y-\min y$ and call the diagonal the size. 
 It is two passes over the points and it is wrong, because the bounding box is not rotation invariant and some of these figures rotate as they grow. 
-The Heighway dragon turns $45^\circ$ per level, so its box alternately stands square to the axes and sits at an angle, and the measured ratio alternates with it.
+The Heighway dragon turns $45^\circ$ per level, so its box alternately stands square to the axes and sits at an angle, and the measured ratio alternates with it (Figure~\ref{fig:hull}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/dragon-hull.pdf}
+    \caption{The dragon at two consecutive levels, with its bounding box (grey, dashed), its convex hull (blue) and the pair of hull vertices that realises the diameter (red). 
+    The figure turns $45^\circ$ between the two, so the box has to grow by $1.392$ from level 9 to 10 (not shown) and by $1.451$ from 10 to 11 to keep up with a figure that is really scaling by $\sqrt2\approx1.414$ each time; 
+    the diameter grows by $1.423$ both times (Table~\ref{tab:dragon}).
+    Both hulls have ten vertices, out of $1024$ and $1048$ segments.}
+    \label{fig:hull}
+\end{figure}
 
 \begin{table}[H]
 \centering
@@ -857,7 +867,7 @@ Mode B judges the curve by its cover (doesn't look at the production). The pipel
 
     \item \textbf{Exact occupancy.} For each segment $p(t)=p_0+t(p_1-p_0)$,
     find every $t$ at which it crosses a gridline. Between lattice crossings the line lies in one cell so the floor of the midpoint gives the cell exactly.
-    Cells are half-open, $[i\eps,(i+1)\eps)\times[j\eps,(j+1)\eps)$, so a segment through a lattice line only ends up in one cell.
+    Cells are half-open, $[i\eps,(i+1)\eps)\times[j\eps,(j+1)\eps)$, so a segment through a lattice line only ends up in one cell. (Figure~\ref{fig:grids})
 
     The tie-break doesn't always work: at $90^\circ$ the tracer's
     integer headings give exact integer coordinates, so Hilbert, for example, is counted exactly, but at $60^\circ$
@@ -883,6 +893,14 @@ Mode B judges the curve by its cover (doesn't look at the production). The pipel
     Agreement jsut shows the line is straight, not necessarily correct (\S\ref{sec:regions},Remark~\ref{rem:plateau-limits}) 
     (e.g. the dragon's has local slopes of about $1.78$, but its dimension is $2$).
 \end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.78\textwidth]{images/koch-grids.pdf}
+    \caption{Step 4 drawn. Koch at level 4, with boxes shaded for each epsilon. 
+    \\At $\eps=\ell=1$ the 256 segments occupy 252 cells -- roughly one-to-one.}
+    \label{fig:grids}
+\end{figure}
 
 \noindent I think that the usual implementation draws the curve into a bitmap and counts non-empty pixels, which makes the image resolution a hard floor on $\eps$. 
 In this approach I just work from the segments directly, meaning the only floor on $\eps$ is the step length (\S\ref{sec:rolloff}).
@@ -918,7 +936,7 @@ In this approach I just work from the segments directly, meaning the only floor 
 \label{sec:regions}
 
 The definition of \S\ref{sec:boxdef} is a limit, and the natural way to evaluate it is to plot
-$\log N(\eps)$ against $\log(1/\eps)$ and fit a line. The plot is not a line and instead has 3 regions:
+$\log N(\eps)$ against $\log(1/\eps)$ and fit a line. The plot is not a line and instead has 3 regions (Figure~\ref{fig:regions}):
 
 \begin{itemize}
     \item $\eps$ below the step length $\ell_n$: the figure is a union of
@@ -926,6 +944,16 @@ $\log N(\eps)$ against $\log(1/\eps)$ and fit a line. The plot is not a line and
     \item $\eps$ above roughly a thirtieth of the figure's diameter: the boxes are too few and big so we are essentially counting the outline rather than the shape;
     \item between the two, the \textbf{scaling window}, where the slope estimates the dimension.
 \end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/koch-boxcount.pdf}
+    \caption{All three regions at once, on the Koch curve at level 7. 
+    The shaded band is the scaling window $\ell\le\eps\le\operatorname{span}/32$.
+    \\\textbf{Top:} the counts, with the line fitted using the points in the window.
+    \\\textbf{Bottom:} local slope between neighbouring rungs. Falls towards 1 below the step length, $\approx\log4/\log3$ in the window, and collapses when there are too few boxes.}
+    \label{fig:regions}
+\end{figure}
 
 \noindent At $\eps=\ell$ the boxes and the segments are roughly in a one-to-one correspondence:
 
@@ -1296,6 +1324,31 @@ However, only Mode B can be run on a coastline, so a box-counting dimension shou
     I should probably validate these with a new set...
 \end{itemize}
 
+
+% ─────────────────────────────────────────────────────────────────────────────
+\newpage
+\appendix
+\section{The catalogue}
+\label{sec:gallery}
+
+Every system in the library traced by the turtle. 
+Colour runs along the word, so you can see the order that it's been drawn.
+Their dimensions are in Table~\ref{tab:growth}; each panel is one \texttt{python3 -m fractaldim draw <name> -n <level>}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{images/gallery-family.png}
+    \caption{The validation family of Table~\ref{tab:lsystems}, whose dimensions run from $0.63$ to $2$.}
+    \label{fig:gallery-family}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{images/gallery-extras.png}
+    \caption{The extras. The dragon and L\'evy C are the two the box counter gets badly wrong (\S\ref{sec:failures}); 
+    the plant is the one system here that branches, so Moran's theorem does not apply. }
+    \label{fig:gallery-extras}
+\end{figure}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \newpage

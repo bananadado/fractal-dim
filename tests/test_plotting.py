@@ -123,3 +123,38 @@ def test_rolloff_needs_a_reference_to_measure_error_against():
     segments = trace(library.get("koch").system, 4)
     with pytest.raises(ValueError, match="reference dimension"):
         plot_rolloff([sweep(segments, level=4, below_step=8)])
+
+
+def test_strip_rows_are_sized_by_their_own_tallest_panel():
+    """A row of wide curves should not be stretched to the height of a tall one
+    in another row, which is what strands them in whitespace."""
+    from fractaldim.plotting import plot_strip
+
+    wide = trace(library.get("koch").system, 3)
+    tall = trace(library.get("plant").system, 4, start_heading=90.0)
+    panels = [("a", wide), ("b", wide), ("c", tall), ("d", tall)]
+
+    figure = plot_strip(panels, columns=2, size=4.0)
+    first, second = figure.axes[0].get_position(), figure.axes[2].get_position()
+    assert second.height > first.height
+
+
+def test_hull_draws_the_curve_its_hull_and_one_diameter_chord(tmp_path, koch):
+    from fractaldim.geometry import convex_hull, diameter
+    from fractaldim.plotting import plot_hull
+
+    import matplotlib.pyplot as plt
+
+    ax = plot_hull(koch, size=3.0)
+    hull = convex_hull(koch.reshape(-1, 2))
+
+    # The hull polygon, its vertex markers, and the chord with its two ends.
+    chords = [line for line in ax.lines if len(line.get_xdata()) == 2]
+    assert chords, "the diameter chord should be drawn"
+    (x0, x1), (y0, y1) = chords[0].get_data()
+    assert np.hypot(x1 - x0, y1 - y0) == pytest.approx(diameter(koch))
+    assert ax.get_title().endswith(f"{len(hull)} hull vertices")
+
+    figure = ax.get_figure()
+    figure.savefig(tmp_path / "hull.png", dpi=50)
+    plt.close(figure)
