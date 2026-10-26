@@ -44,22 +44,27 @@ Without activating, spell out the interpreter: `.venv/bin/python -m fractaldim .
 Tests: `.venv/bin/python -m pytest`
 
 ## commands
-There are 5 top level commands: `list`, `growth`, `boxcount`, `draw`, and
-`animate`.
+There are 6 top level commands: `list`, `growth`, `boxcount`, `rolloff`, `draw`, and `animate`.
 Each of these has further options including resolution and fps.
 
 
 `growth` recovers the dimension from the grammar itself -- the substitution
 matrix, the growth rate of the drawn symbols, and the scaling factor -- so
-`python3 -m fractaldim growth` prints the write-up's Table 1 as computed
-output. Give it a name for the workings.
+`python3 -m fractaldim growth` prints the write-up's Mode A as computed output. Give it a name for the workings.
 
-`boxcount` goes the other way, measuring the dimension off the drawn curve
-without using the grammar at all -- an independent check on `growth`. It
-prints the count at every box size and the local slope between them, since a
-fitted line through box counts always yields a number and only a plateau in
-those slopes says the number is a dimension. `--grids` draws the occupied
-boxes at four scales.
+`boxcount` measures the dimension off the drawn curve. 
+It prints the count at every box size and the local slope between them, since a
+fitted line through box counts always yields a number. 
+`--grids` draws the occupied boxes at four scales.
+`--settle` is a quick check to see if a curve is too shallow (see section 9.7.2).
+
+`rolloff` plots the error as `eps -> 0`.
+This should result in a V shape (see section 9.6). 
+Sweep several levels at once with `--levels 5,6,7` to watch the V drop.
+
+```sh
+python3 -m fractaldim rolloff koch --levels 5,6,7 --open
+```
 
 You can also change the generation of an L-system using `-n` for iterations.
 
