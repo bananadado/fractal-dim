@@ -1,6 +1,7 @@
 # fractal-dim
 Box-counting fractal dimension estimator via L-systems.
-Writeup by ME, everything else pretty clauded with a lot of guidance.
+
+Writeup by ME, implementation is written with heavy AI assistance to my design.
 
 # writeup
 This is just some findings which I thought were interesting as well as a not-so-shallow dive into the actual maths behind it which is pretty interesting.
